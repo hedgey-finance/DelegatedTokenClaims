@@ -205,67 +205,44 @@ abstract contract DelegatedClaimCampaigns is IERC721Receiver, ReentrancyGuard, E
     bytes32 r,
     bytes32 s
   ) external nonReentrant {
-    require(delegatee != address(0), 'delegate 0 address');
-    require(!claimed[campaignId][msg.sender], 'already claimed');
-    Campaign memory campaign = campaigns[campaignId];
-    require(campaign.end > block.timestamp, 'campaign ended');
-    require(verify(campaign.root, proof, msg.sender, claimAmount), '!eligible');
-    require(campaign.amount >= claimAmount, 'campaign unfunded');
-    claimed[campaignId][msg.sender] = true;
-    campaigns[campaignId].amount -= claimAmount;
-    if (campaigns[campaignId].amount == 0) {
-      delete campaigns[campaignId];
-    }
-    address currentDelegate = IERC20Votes(campaign.token).delegates(msg.sender);
-    if (campaign.tokenLockup == TokenLockup.Unlocked) {
-      TransferHelper.withdrawTokens(campaign.token, msg.sender, claimAmount);
-      if (currentDelegate != delegatee)
-        IERC20Votes(campaign.token).delegateBySig(delegatee, nonce, expiry, v, r, s);
-    } else {
-      ClaimLockup memory c = claimLockups[campaignId];
-      uint256 rate;
-      if (claimAmount % c.periods == 0) {
-        rate = claimAmount / c.periods;
-      } else {
-        rate = claimAmount / c.periods + 1;
-      }
-      uint256 start = c.start == 0 ? block.timestamp : c.start;
-      uint256 tokenId;
-      if (campaign.tokenLockup == TokenLockup.Locked) {
-        tokenId = ILockupPlans(c.tokenLocker).createPlan(
-          address(this),
-          campaign.token,
-          claimAmount,
-          start,
-          c.cliff,
-          rate,
-          c.period
-        );
-        IDelegatePlan(c.tokenLocker).delegate(tokenId, delegatee);
-        IERC721(c.tokenLocker).transferFrom(address(this), msg.sender, tokenId);
-      } else {
-        tokenId = IVestingPlans(c.tokenLocker).createPlan(
-          address(this),
-          campaign.token,
-          claimAmount,
-          start,
-          c.cliff,
-          rate,
-          c.period,
-          address(this),
-          true
-        );
-        IDelegatePlan(c.tokenLocker).delegate(tokenId, delegatee);
-        IERC721(c.tokenLocker).transferFrom(address(this), msg.sender, tokenId);
-        IVestingPlans(c.tokenLocker).changeVestingPlanAdmin(tokenId, campaign.manager);
-      }
-    }
-    emit Claimed(msg.sender, claimAmount);
-    emit TokensClaimed(campaignId, msg.sender, claimAmount, campaigns[campaignId].amount);
+    _claimAndDelegate(campaignId, proof, msg.sender, claimAmount, delegatee, nonce, expiry, v, r, s);
   }
 
 
   function claimAndDelegateTokensBySig(
+    bytes16 campaignId,
+    bytes32[] memory proof,
+    address claimer,
+    uint8 _v,
+    bytes32 _r,
+    bytes32 _s,
+    uint256 claimAmount,
+    address delegatee,
+    uint256 nonce,
+    uint256 expiry,
+    uint8 v,
+    bytes32 r,
+    bytes32 s
+  ) external nonReentrant {
+    bytes32 structHash = keccak256(abi.encode(CLAIM_TYPEHASH, claimer, claimAmount));
+    bytes32 hash = _hashTypedDataV4(structHash);
+    address signer = ECDSA.recover(hash, _v, _r, _s);
+    require(signer == claimer, 'invalid signer');
+    _claimAndDelegate(campaignId, proof, claimer, claimAmount, delegatee, nonce, expiry, v, r, s);
+  }
+
+  /// @notice this function allows the campaign manager to cancel an ongoing campaign at anytime. Cancelling a campaign will return any unclaimed tokens, and then prevent anyone from claiming additional tokens
+  /// @param campaignId is the id of the campaign to be cancelled
+  function cancelCampaign(bytes16 campaignId) external nonReentrant {
+    Campaign memory campaign = campaigns[campaignId];
+    require(campaign.manager == msg.sender, '!manager');
+    delete campaigns[campaignId];
+    delete claimLockups[campaignId];
+    TransferHelper.withdrawTokens(campaign.token, msg.sender, campaign.amount);
+    emit CampaignCancelled(campaignId);
+  }
+
+  function _claimAndDelegate(
     bytes16 campaignId,
     bytes32[] memory proof,
     address claimer,
@@ -276,12 +253,8 @@ abstract contract DelegatedClaimCampaigns is IERC721Receiver, ReentrancyGuard, E
     uint8 v,
     bytes32 r,
     bytes32 s
-  ) external nonReentrant {
+  ) internal {
     require(delegatee != address(0), 'delegate 0 address');
-    bytes32 structHash = keccak256(abi.encode(CLAIM_TYPEHASH, claimer, claimAmount));
-    bytes32 hash = _hashTypedDataV4(structHash);
-    address signer = ECDSA.recover(hash, v, r, s);
-    require(signer == claimer, 'invalid signer');
     require(!claimed[campaignId][claimer], 'already claimed');
     Campaign memory campaign = campaigns[campaignId];
     require(campaign.end > block.timestamp, 'campaign ended');
@@ -338,17 +311,6 @@ abstract contract DelegatedClaimCampaigns is IERC721Receiver, ReentrancyGuard, E
     }
     emit Claimed(claimer, claimAmount);
     emit TokensClaimed(campaignId, claimer, claimAmount, campaigns[campaignId].amount);
-  }
-
-  /// @notice this function allows the campaign manager to cancel an ongoing campaign at anytime. Cancelling a campaign will return any unclaimed tokens, and then prevent anyone from claiming additional tokens
-  /// @param campaignId is the id of the campaign to be cancelled
-  function cancelCampaign(bytes16 campaignId) external nonReentrant {
-    Campaign memory campaign = campaigns[campaignId];
-    require(campaign.manager == msg.sender, '!manager');
-    delete campaigns[campaignId];
-    delete claimLockups[campaignId];
-    TransferHelper.withdrawTokens(campaign.token, msg.sender, campaign.amount);
-    emit CampaignCancelled(campaignId);
   }
 
   /// @dev the internal verify function from the open zepellin library.
