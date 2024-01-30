@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: BUSL-1.1
-pragma solidity 0.8.19;
+pragma solidity 0.8.24;
 
 import './libraries/TransferHelper.sol';
 import './libraries/TimelockLibrary.sol';
@@ -20,10 +20,6 @@ import '@openzeppelin/contracts/token/ERC721/IERC721Receiver.sol';
 /// @notice This tool allows token projects to safely, securely and efficiently distribute your tokens in large scale to your community, whereby they can claim them based on your criteria of wallet address and amount.
 
 abstract contract DelegatedClaimCampaigns is IERC721Receiver, ReentrancyGuard, EIP712 {
-
-
-  bytes32 private constant CLAIM_TYPEHASH =
-        keccak256("Claim(address claimer,uint256 claimAmount)");
 
   address private feeCollector;
   uint256 private standardFee;
@@ -271,29 +267,6 @@ abstract contract DelegatedClaimCampaigns is IERC721Receiver, ReentrancyGuard, E
     emit Claimed(claimer, claimAmount);
     emit TokensClaimed(campaignId, claimer, claimAmount, campaigns[campaignId].amount);
   }
-
-
-  // function claimAndDelegateTokensBySig(
-  //   bytes16 campaignId,
-  //   bytes32[] memory proof,
-  //   address claimer,
-  //   uint8 _v,
-  //   bytes32 _r,
-  //   bytes32 _s,
-  //   uint256 claimAmount,
-  //   address delegatee,
-  //   uint256 nonce,
-  //   uint256 expiry,
-  //   uint8 v,
-  //   bytes32 r,
-  //   bytes32 s
-  // ) external nonReentrant {
-  //   bytes32 structHash = keccak256(abi.encode(CLAIM_TYPEHASH, claimer, claimAmount));
-  //   bytes32 hash = _hashTypedDataV4(structHash);
-  //   address signer = ECDSA.recover(hash, _v, _r, _s);
-  //   require(signer == claimer, 'invalid signer');
-  //   _claimAndDelegate(campaignId, proof, claimer, claimAmount, delegatee, nonce, expiry, v, r, s);
-  // }
 
   /// @notice this function allows the campaign manager to cancel an ongoing campaign at anytime. Cancelling a campaign will return any unclaimed tokens, and then prevent anyone from claiming additional tokens
   /// @param campaignId is the id of the campaign to be cancelled

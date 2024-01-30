@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: BUSL-1.1
-pragma solidity 0.8.19;
+pragma solidity 0.8.24;
 
 /// @notice Library to assist with calculation methods of the balances, ends, period amounts for a given plan
 /// used by both the Lockup and Vesting Plans
