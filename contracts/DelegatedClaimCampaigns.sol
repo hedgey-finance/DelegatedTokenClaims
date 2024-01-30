@@ -8,19 +8,17 @@ import './interfaces/ILockupPlans.sol';
 import './interfaces/IDelegatePlan.sol';
 import './interfaces/IERC20Votes.sol';
 
-import '@openzeppelin/contracts/security/ReentrancyGuard.sol';
+import '@openzeppelin/contracts/utils/ReentrancyGuard.sol';
 import '@openzeppelin/contracts/utils/cryptography/MerkleProof.sol';
-import '@openzeppelin/contracts/utils/cryptography/ECDSA.sol';
-import '@openzeppelin/contracts/utils/cryptography/EIP712.sol';
 import '@openzeppelin/contracts/token/ERC721/IERC721.sol';
 import '@openzeppelin/contracts/token/ERC721/IERC721Receiver.sol';
 
+import 'hardhat/console.sol';
 
 /// @title ClaimCampaigns - The smart contract to distribute your tokens to the community via claims
 /// @notice This tool allows token projects to safely, securely and efficiently distribute your tokens in large scale to your community, whereby they can claim them based on your criteria of wallet address and amount.
 
-abstract contract DelegatedClaimCampaigns is IERC721Receiver, ReentrancyGuard, EIP712 {
-
+contract DelegatedClaimCampaigns is IERC721Receiver, ReentrancyGuard {
   address private feeCollector;
   uint256 private standardFee;
   mapping(address => uint256) private customFee;
@@ -89,7 +87,11 @@ abstract contract DelegatedClaimCampaigns is IERC721Receiver, ReentrancyGuard, E
   event TokensClaimed(bytes16 indexed id, address indexed claimer, uint256 amountClaimed, uint256 amountRemaining);
   event Claimed(address indexed recipient, uint256 indexed amount);
 
-  constructor(address _feeCollector, uint256 _standardFee, address _feeLocker) {
+  constructor(
+    address _feeCollector,
+    uint256 _standardFee,
+    address _feeLocker
+  ) {
     require(_feeCollector != address(0));
     require(_standardFee > 0);
     feeCollector = _feeCollector;
@@ -121,7 +123,7 @@ abstract contract DelegatedClaimCampaigns is IERC721Receiver, ReentrancyGuard, E
       return 0;
     } else {
       uint256 feePercent = customFee[token] == 0 ? standardFee : customFee[token];
-      return (amount * 10000) / feePercent;
+      return (amount * feePercent) / 10000;
     }
   }
 
@@ -196,7 +198,6 @@ abstract contract DelegatedClaimCampaigns is IERC721Receiver, ReentrancyGuard, E
     emit CampaignStarted(id, campaign);
   }
 
-  
   function claimAndDelegate(
     bytes16 campaignId,
     bytes32[] memory proof,
@@ -220,11 +221,11 @@ abstract contract DelegatedClaimCampaigns is IERC721Receiver, ReentrancyGuard, E
     if (campaigns[campaignId].amount == 0) {
       delete campaigns[campaignId];
     }
-    address currentDelegate = IERC20Votes(campaign.token).delegates(claimer);
     if (campaign.tokenLockup == TokenLockup.Unlocked) {
       TransferHelper.withdrawTokens(campaign.token, claimer, claimAmount);
-      if (currentDelegate != delegatee)
-        IERC20Votes(campaign.token).delegateBySig(delegatee, nonce, expiry, v, r, s);
+      IERC20Votes(campaign.token).delegateBySig(delegatee, nonce, expiry, v, r, s);
+      address delegatedTo = IERC20Votes(campaign.token).delegates(claimer);
+      require(delegatedTo == delegatee, 'delegation failed');
     } else {
       ClaimLockup memory c = claimLockups[campaignId];
       uint256 rate;
@@ -278,8 +279,6 @@ abstract contract DelegatedClaimCampaigns is IERC721Receiver, ReentrancyGuard, E
     TransferHelper.withdrawTokens(campaign.token, msg.sender, campaign.amount);
     emit CampaignCancelled(campaignId);
   }
-
-  
 
   /// @dev the internal verify function from the open zepellin library.
   /// this function inputs the root, proof, wallet address of the claimer, and amount of tokens, and then computes the validity of the leaf with the proof and root.
