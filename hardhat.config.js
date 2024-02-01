@@ -1,8 +1,6 @@
-require('@nomiclabs/hardhat-etherscan');
-require('@nomiclabs/hardhat-waffle');
-// require('hardhat-gas-reporter');
-require('hardhat-deploy');
+require("@nomicfoundation/hardhat-ethers");
 require('dotenv').config();
+require('@nomicfoundation/hardhat-chai-matchers');
 
 module.exports = {
   solidity: {
