@@ -11,7 +11,7 @@ import './interfaces/IERC20Votes.sol';
 import '@openzeppelin/contracts/utils/ReentrancyGuard.sol';
 import '@openzeppelin/contracts/utils/cryptography/MerkleProof.sol';
 import '@openzeppelin/contracts/token/ERC721/IERC721.sol';
-import '@openzeppelin/contracts/token/ERC721/IERC721Receiver.sol';
+import '@openzeppelin/contracts/token/ERC721/utils/ERC721Holder.sol';
 import '@openzeppelin/contracts/utils/cryptography/EIP712.sol';
 import '@openzeppelin/contracts/utils/cryptography/ECDSA.sol';
 import '@openzeppelin/contracts/utils/Nonces.sol';
@@ -21,15 +21,9 @@ import 'hardhat/console.sol';
 /// @title ClaimCampaigns - The smart contract to distribute your tokens to the community via claims
 /// @notice This tool allows token projects to safely, securely and efficiently distribute your tokens in large scale to your community, whereby they can claim them based on your criteria of wallet address and amount.
 
-contract DelegatedClaimCampaigns is IERC721Receiver, ReentrancyGuard, EIP712, Nonces {
+contract DelegatedClaimCampaigns is ERC721Holder, ReentrancyGuard, EIP712, Nonces {
   bytes32 private constant CLAIM_TYPEHASH =
     keccak256('Claim(bytes16 campaignId,address claimer,uint256 claimAmount,uint256 nonce,uint256 expiry)');
-
-  address private feeCollector;
-  uint256 private standardFee;
-  mapping(address => uint256) private customFee;
-  mapping(address => bool) private feePaid;
-  ILockupPlans private feeLocker;
 
   /// @dev an enum defining the different types of claims to be made
   /// @param Unlocked means that tokens claimed are liquid and not locked at all
@@ -107,41 +101,7 @@ contract DelegatedClaimCampaigns is IERC721Receiver, ReentrancyGuard, EIP712, No
   );
   event Claimed(address indexed recipient, uint256 indexed amount);
 
-  constructor(address _feeCollector, uint256 _standardFee, address _feeLocker) EIP712('DelegatedClaimCampaigns', '1') {
-    require(_feeCollector != address(0));
-    require(_standardFee > 0);
-    feeCollector = _feeCollector;
-    standardFee = _standardFee;
-    feeLocker = ILockupPlans(_feeLocker);
-  }
-
-  modifier onlyCollector() {
-    require(msg.sender == feeCollector);
-    _;
-  }
-
-  /// @notice function to change the address the donations are sent to
-  /// @param newCollector the address that is going to be the new recipient of donations
-  function changeFeeCollector(address newCollector) external onlyCollector {
-    feeCollector = newCollector;
-  }
-
-  function addCustomFee(address token, uint256 _customFee) external onlyCollector {
-    customFee[token] = _customFee;
-  }
-
-  function updateFeePaidStatus(address token, bool paid) external onlyCollector {
-    feePaid[token] = paid;
-  }
-
-  function getFee(address token, uint256 amount) public view returns (uint256) {
-    if (feePaid[token]) {
-      return 0;
-    } else {
-      uint256 feePercent = customFee[token] == 0 ? standardFee : customFee[token];
-      return (amount * feePercent) / 10000;
-    }
-  }
+  constructor() EIP712('DelegatedClaimCampaigns', '1') {}
 
   /**********EXTERNAL CREATE& CANCEL CLAIMS FUNCTIONS********************************************************************************************/
 
@@ -158,9 +118,7 @@ contract DelegatedClaimCampaigns is IERC721Receiver, ReentrancyGuard, EIP712, No
     require(campaign.end > block.timestamp, 'end error');
     require(campaign.tokenLockup == TokenLockup.Unlocked, 'locked');
     require(IERC20Votes(campaign.token).delegates(address(this)) == (address(0)), '!ERC20Votes');
-    uint256 fee = getFee(campaign.token, campaign.amount);
     TransferHelper.transferTokens(campaign.token, msg.sender, address(this), campaign.amount);
-    if (fee > 0) TransferHelper.transferTokens(campaign.token, msg.sender, feeCollector, fee);
     campaigns[id] = campaign;
     emit CampaignStarted(id, campaign);
   }
@@ -190,27 +148,7 @@ contract DelegatedClaimCampaigns is IERC721Receiver, ReentrancyGuard, EIP712, No
       _vestingAdmins[id] = vestingAdmin;
     }
     require(claimLockup.tokenLocker != address(0), 'invalide locker');
-    uint256 fee = getFee(campaign.token, campaign.amount);
-    TransferHelper.transferTokens(campaign.token, msg.sender, address(this), campaign.amount + fee);
-    if (fee > 0) {
-      SafeERC20.safeIncreaseAllowance(IERC20(campaign.token), address(feeLocker), fee);
-      uint256 rate;
-      if (fee % claimLockup.periods == 0) {
-        rate = fee / claimLockup.periods;
-      } else {
-        rate = fee / claimLockup.periods + 1;
-      }
-      feeLocker.createPlan(
-        feeCollector,
-        campaign.token,
-        fee,
-        claimLockup.start,
-        claimLockup.cliff,
-        rate,
-        claimLockup.period
-      );
-    }
-
+    TransferHelper.transferTokens(campaign.token, msg.sender, address(this), campaign.amount);
     claimLockups[id] = claimLockup;
     SafeERC20.safeIncreaseAllowance(IERC20(campaign.token), claimLockup.tokenLocker, campaign.amount);
     campaigns[id] = campaign;
@@ -415,14 +353,5 @@ contract DelegatedClaimCampaigns is IERC721Receiver, ReentrancyGuard, EIP712, No
     bytes32 leaf = keccak256(bytes.concat(keccak256(abi.encode(claimer, amount))));
     require(MerkleProof.verify(proof, root, leaf), 'Invalid proof');
     return true;
-  }
-
-  function onERC721Received(
-    address operator,
-    address from,
-    uint256 tokenId,
-    bytes calldata data
-  ) external pure override returns (bytes4) {
-    return this.onERC721Received.selector;
   }
 }
