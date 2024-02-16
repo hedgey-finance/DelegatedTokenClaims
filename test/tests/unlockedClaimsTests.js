@@ -11,7 +11,7 @@ const unlockedTests = (params) => {
   let deployed, dao, feeCollector, a, b, c, d, e, token, claimContract, tokenDomain, claimDomain;
   let amount, campaign, claimA, claimB, claimC, claimD, claimE, id;
   it(`DAO creates an unlocked claim campaign`, async () => {
-    deployed = await setup(params.fee);
+    deployed = await setup(params.fee, params.decimals);
     dao = deployed.dao;
     feeCollector = deployed.feeCollector;
     a = deployed.a;
@@ -186,14 +186,96 @@ const unlockedTests = (params) => {
     await claimContract.connect(dao).claimAndDelegateWithSig(id, proof, d.address, claimD, txSig, delegatee, delegationSig);
     expect(await token.balanceOf(d.address)).to.eq(claimD);
     expect(await token.delegates(d.address)).to.eq(delegatee);
+    const nonces = await token.nonces(d.address);
+    console.log(`nonces: ${nonces}`)
   });
   it('dao creates a new claim contract and then claims on behalf of users to check nonces', async () => {
+
+  });
+  it('DAO cancels campgain and unclaimed tokens are returned', async () => {
+
+  });
+  it('Fee Collector adjusts fee for special token', async () => {
 
   });
 };
 
 
 const unlockedErrorTests = () => {
+  let deployed, dao, feeCollector, a, b, c, d, e, token, claimContract, tokenDomain, claimDomain;
+  let amount, campaign, claimA, claimB, claimC, claimD, claimE, id;
+  it('Creation will fail if DAO does not have enough tokens for the claim', async () => {
+
+  });
+  it('Creation will fail if a claim ID is already in use or has been used', async () => {
+
+  })
+  it('Creation will fail with a 0x0 token address', async () => {
+
+  });
+  it('Creation will fail with a 0x0 manager address', async () => {
+
+  });
+  it('Creation will fail if amount is 0', async () => {
+
+  });
+  it('Creation will fail if the end is in the past', async () => {
+
+  });
+  it('Creation will fail if the lockup type is not set to Unlocked', async () => {
+
+  });
+  it('Creator cannot cancel a claim twice', async () => {
+
+  });
+  it('User cannot claim tokens if the claim is ended', async () => {
+
+  });
+  it('User cannot claim if the campaign has been cancelled', async () => {
+
+  });
+  it('User cannot cancel a claim they are not the manager of', async () => {
+
+  });
+  it('User cannot claim a different amount than their allocation', async () => {
+
+  });
+  it('User cannot claim if they are not in the tree', async () => {
+
+  });
+  it('User cannot claim tokens with the wrong proof', async () => {
+
+  });
+  it('User cannot claim tokens with wrong delegation signature', async () => {
+
+  });
+  it('User cannot claim with a 0x0 delegatee address', async () => {
+
+  });
+  it('User cannot claim twice for the same claim', async () => {
+
+  });
+  it('User cannot claim with the wrong delegation signature nonce', async () => {
+
+  });
+  it('User cannot claim with the wrong delegation signature expiration', async () => {
+
+  });
+  it('DAO cannot claim on behalf of user with wrong signature transaction', async () => {
+
+  });
+  it('DAO cannot claim on behalf of user with the wrong claim signature nonce', async () => {
+
+  });
+  it('DAO cannot claim on behalf of user with the wrong claim signature expiration', async () => {
+
+  });
+  it('Creation will fail with a Burn or Tax Token', async () => {
+
+  });
+  it('Creation will fail with a token that does not have delegation ability', async () => {
+
+  })
 }
 
 

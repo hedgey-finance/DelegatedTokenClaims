@@ -7,12 +7,19 @@ import '@openzeppelin/contracts/utils/cryptography/EIP712.sol';
 
 contract Token is ERC20Votes {
 
-  constructor(uint256 initialSupply, string memory name, string memory symbol) ERC20(name, symbol) EIP712(name, '1') {
+  uint8 internal _decimals;
+
+  constructor(string memory name, string memory symbol, uint256 initialSupply, uint8 __decimals) ERC20(name, symbol) EIP712(name, '1') {
     _mint(msg.sender, initialSupply);
+    _decimals = __decimals;
   }
 
   function mint(uint256 amount) public {
     _mint(msg.sender, amount);
+  }
+
+  function decimals() public view override returns (uint8) {
+    return _decimals;
   }
 
 }

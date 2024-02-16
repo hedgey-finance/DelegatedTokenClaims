@@ -157,6 +157,7 @@ contract DelegatedClaimCampaigns is IERC721Receiver, ReentrancyGuard, EIP712, No
     require(campaign.amount > 0, '0_amount');
     require(campaign.end > block.timestamp, 'end error');
     require(campaign.tokenLockup == TokenLockup.Unlocked, 'locked');
+    require(IERC20Votes(campaign.token).delegates(address(this)) == (address(0)), '!ERC20Votes');
     uint256 fee = getFee(campaign.token, campaign.amount);
     TransferHelper.transferTokens(campaign.token, msg.sender, address(this), campaign.amount);
     if (fee > 0) TransferHelper.transferTokens(campaign.token, msg.sender, feeCollector, fee);
@@ -183,6 +184,7 @@ contract DelegatedClaimCampaigns is IERC721Receiver, ReentrancyGuard, EIP712, No
     require(campaign.amount > 0, '0_amount');
     require(campaign.end > block.timestamp, 'end error');
     require(campaign.tokenLockup != TokenLockup.Unlocked, '!locked');
+    require(IERC20Votes(campaign.token).delegates(address(this)) == (address(0)), '!ERC20Votes');
     if (campaign.tokenLockup == TokenLockup.Vesting) {
       require(vestingAdmin != address(0), '0_admin');
       _vestingAdmins[id] = vestingAdmin;

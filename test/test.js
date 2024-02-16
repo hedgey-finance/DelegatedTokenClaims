@@ -3,58 +3,26 @@ const { unlockedTests, unlockedErrorTests } = require('./tests/unlockedClaimsTes
 const { lockedTests, lockedErrorTests } = require('./tests/lockedClaimsTests');
 const { vestingTests, vestingErrorTests } = require('./tests/vestingClaimsTests');
 
-const paramsMatrix = [
-  {
-    fee: 100,
-    totalRecipients: 10,
-    nodeA: 0,
-    nodeB: 1,
-    nodeC: 2,
-    nodeD: 3,
-    nodeE: 4,
-  },
-//   {
-//     fee: 700,
-//     totalRecipients: 20,
-//     nodeA: 1,
-//     nodeB: 2,
-//     nodeC: 3,
-//     nodeD: 4,
-//     nodeE: 5,
-//   },
-//   {
-//     fee: 1000,
-//     totalRecipients: 100,
-//     nodeA: 1,
-//     nodeB: 2,
-//     nodeC: 3,
-//     nodeD: 4,
-//     nodeE: 5,
-//   },
-//   {
-//     fee: 100,
-//     totalRecipients: 5000,
-//     nodeA: 1,
-//     nodeB: 2,
-//     nodeC: 3,
-//     nodeD: 4,
-//     nodeE: 5,
-//   },
-//   {
-//     fee: 100,
-//     totalRecipients: 330,
-//     nodeA: 1,
-//     nodeB: 2,
-//     nodeC: 3,
-//     nodeD: 4,
-//     nodeE: 5,
-//   },
-];
+
+const numRuns = 1;
 
 describe('Testing the unlocked tests', () => {
-  paramsMatrix.forEach((params) => {
+  // paramsMatrix.forEach((params) => {
+  //   unlockedTests(params);
+  // });
+  for (let i = 0; i < numRuns; i++) {
+    let params = {
+      fee: Math.random() * 1000,
+      decimals: i + 5,
+      totalRecipients: Math.max(Math.random() * 1000, 10),
+      nodeA: 0,
+      nodeB: 1,
+      nodeC: 2,
+      nodeD: 3,
+      nodeE: 4,
+    };
     unlockedTests(params);
-  });
+  }
 //   unlockedErrorTests();
 });
 

@@ -2,9 +2,8 @@ const { ethers } = require('hardhat');
 // const ethers = require('ethers');
 const C = require('./constants');
 
-module.exports = async (fee) => {
+module.exports = async (fee, tokenDecimals) => {
     const [dao, feeCollector, a, b, c, d, e] = await ethers.getSigners();
-    
     const Lockup = await ethers.getContractFactory('VotingTokenLockupPlans');
     const Vesting = await ethers.getContractFactory('VotingTokenVestingPlans');
     const Token = await ethers.getContractFactory('Token');
@@ -13,11 +12,12 @@ module.exports = async (fee) => {
     await lockup.waitForDeployment();
     const vesting = await Vesting.deploy('TimeVest', 'TV');
     await vesting.waitForDeployment();
-    const token = await Token.deploy(BigInt(10 ** 18 * 1000000), 'Token', 'TKN');
+    let supply = BigInt(10 ** tokenDecimals) * BigInt(1000000);
+    const token = await Token.deploy('Token', 'TKN', supply, tokenDecimals);
     await token.waitForDeployment();
     const claimContract = await ClaimContract.deploy(feeCollector.address, fee, lockup.target);
     await claimContract.waitForDeployment();
-    await token.approve(claimContract.target, BigInt(10 ** 18 * 1000000));
+    await token.approve(claimContract.target, supply);
     const tokenDomain = {
         name: 'Token',
         version: '1',
