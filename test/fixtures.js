@@ -2,8 +2,8 @@ const { ethers } = require('hardhat');
 // const ethers = require('ethers');
 const C = require('./constants');
 
-module.exports = async (fee, tokenDecimals) => {
-    const [dao, feeCollector, a, b, c, d, e] = await ethers.getSigners();
+module.exports = async (tokenDecimals) => {
+    const [dao, a, b, c, d, e] = await ethers.getSigners();
     const Lockup = await ethers.getContractFactory('VotingTokenLockupPlans');
     const Vesting = await ethers.getContractFactory('VotingTokenVestingPlans');
     const Token = await ethers.getContractFactory('Token');
@@ -15,24 +15,25 @@ module.exports = async (fee, tokenDecimals) => {
     let supply = BigInt(10 ** tokenDecimals) * BigInt(1000000);
     const token = await Token.deploy('Token', 'TKN', supply, tokenDecimals);
     await token.waitForDeployment();
-    const claimContract = await ClaimContract.deploy(feeCollector.address, fee, lockup.target);
+    const claimName = 'DelegatedClaimCampaigns'
+    const version = '1';
+    const claimContract = await ClaimContract.deploy(claimName, version);
     await claimContract.waitForDeployment();
     await token.approve(claimContract.target, supply);
     const tokenDomain = {
         name: 'Token',
-        version: '1',
+        version,
         chainId: await ethers.provider.getNetwork().then(n => n.chainId),
         verifyingContract: token.target,
     }
     const claimDomain = {
-        name: 'DelegatedClaimCampaigns',
-        version: '1',
+        name: claimName,
+        version,
         chainId: await ethers.provider.getNetwork().then(n => n.chainId),
         verifyingContract: claimContract.target,
     }
     return {
         dao,
-        feeCollector,
         a,
         b,
         c,

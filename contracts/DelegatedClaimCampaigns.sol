@@ -101,7 +101,7 @@ contract DelegatedClaimCampaigns is ERC721Holder, ReentrancyGuard, EIP712, Nonce
   );
   event Claimed(address indexed recipient, uint256 indexed amount);
 
-  constructor() EIP712('DelegatedClaimCampaigns', '1') {}
+  constructor(string memory name, string memory version) EIP712(name, version) {}
 
   /**********EXTERNAL CREATE& CANCEL CLAIMS FUNCTIONS********************************************************************************************/
 
@@ -196,19 +196,6 @@ contract DelegatedClaimCampaigns is ERC721Holder, ReentrancyGuard, EIP712, Nonce
     } else {
       _claimLockedAndDelegate(campaignId, proof, msg.sender, claimAmount, delegatee);
     }
-  }
-
-  // only supports locked and vesting claims
-  function claimAndDelegateLockedTokens(
-    bytes16 campaignId,
-    bytes32[] memory proof,
-    uint256 claimAmount,
-    address delegatee
-  ) external nonReentrant {
-    require(delegatee != address(0), 'delegate 0 address');
-    require(!claimed[campaignId][msg.sender], 'already claimed');
-    require(campaigns[campaignId].tokenLockup != TokenLockup.Unlocked, 'unlocked');
-    _claimLockedAndDelegate(campaignId, proof, msg.sender, claimAmount, delegatee);
   }
 
   // for completely gasless claiming

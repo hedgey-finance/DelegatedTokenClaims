@@ -8,12 +8,11 @@ const { ethers } = require('hardhat');
 const { v4: uuidv4, parse: uuidParse } = require('uuid');
 
 const unlockedTests = (params) => {
-  let deployed, dao, feeCollector, a, b, c, d, e, token, claimContract, tokenDomain, claimDomain;
+  let deployed, dao, a, b, c, d, e, token, claimContract, tokenDomain, claimDomain;
   let amount, campaign, claimA, claimB, claimC, claimD, claimE, id;
   it(`DAO creates an unlocked claim campaign`, async () => {
-    deployed = await setup(params.fee, params.decimals);
+    deployed = await setup(params.decimals);
     dao = deployed.dao;
-    feeCollector = deployed.feeCollector;
     a = deployed.a;
     b = deployed.b;
     c = deployed.c;
@@ -29,8 +28,7 @@ const unlockedTests = (params) => {
     id = uuidParse(uuid);
     for (let i = 0; i < params.totalRecipients; i++) {
       let wallet;
-      let amt = C.randomBigNum(1000, 10);
-      // let amt = BigInt(10 ** 18);
+      let amt = C.randomBigNum(1000, 10, params.decimals);
       if (i == params.nodeA) {
         wallet = a.address;
         claimA = amt.toString();
@@ -63,10 +61,9 @@ const unlockedTests = (params) => {
       tokenLockup: 0,
       root,
     };
-    const fee = (amount * BigInt(params.fee)) / BigInt(10000);
     await expect(claimContract.createUnlockedCampaign(id, campaign)).to.emit(claimContract, 'CampaignStarted');
     expect(await token.balanceOf(claimContract.target)).to.eq(amount);
-    expect(await token.balanceOf(feeCollector.address)).to.eq(fee);
+    expect(await claimContract.usedIds(id)).to.eq(true);
   });
   it('user A claims their own tokens from their own wallet and self delegates', async () => {
     let proof = getProof('./test/trees/tree.json', a.address);
@@ -187,22 +184,123 @@ const unlockedTests = (params) => {
     expect(await token.balanceOf(d.address)).to.eq(claimD);
     expect(await token.delegates(d.address)).to.eq(delegatee);
     const nonces = await token.nonces(d.address);
-    console.log(`nonces: ${nonces}`)
+    expect(nonces).to.eq(1);
+    const txNonce = await claimContract.nonces(d.address);
+    expect(txNonce).to.eq(1);
   });
   it('dao creates a new claim contract and then claims on behalf of users to check nonces', async () => {
+    let treevalues = [];
+    amount = BigInt(0);
+    const uuid = uuidv4();
+    id = uuidParse(uuid);
+    for (let i = 0; i < params.totalRecipients; i++) {
+      let wallet;
+      let amt = C.randomBigNum(1000, 10, params.decimals);
+      if (i == params.nodeA) {
+        wallet = a.address;
+        claimA = amt;
+      } else if (i == params.nodeB) {
+        wallet = b.address;
+        claimB = amt;
+      } else if (i == params.nodeC) {
+        wallet = c.address;
+        claimC = amt;
+      } else if (i == params.nodeD) {
+        wallet = d.address;
+        claimD = amt;
+      } else if (i == params.nodeE) {
+          wallet = e.address;
+          claimE = amt;
+      } else {
+        wallet = ethers.Wallet.createRandom().address;
+      }
+      amount = amt + amount;
+      treevalues.push([wallet, amt.toString()]);
+    }
+    const root = createTree(treevalues, ['address', 'uint256']);
+    let now = BigInt(await time.latest());
+    let end = BigInt(60 *60 * 24* 7) + now;
+    campaign = {
+      manager: dao.address,
+      token: token.target,
+      amount,
+      end,
+      tokenLockup: 0,
+      root,
+    };
+    await expect(claimContract.createUnlockedCampaign(id, campaign)).to.emit(claimContract, 'CampaignStarted');
+    let proofA = getProof('./test/trees/tree.json', a.address);
+    let expiry =  BigInt(await time.latest()) + BigInt(60 * 60 * 24 * 7);
+    const nonceA = await token.nonces(a.address);
+    expect(nonceA).to.eq(1);
+    const delegationValuesA = {
+      delegatee: a.address,
+      nonce: nonceA,
+      expiry,
+    };
+    const delegationSignatureA = await getSignature(a, tokenDomain, C.delegationtype, delegationValuesA);
+    const delegationSigA = {
+      nonce: nonceA,
+      expiry,
+      v: delegationSignatureA.v,
+      r: delegationSignatureA.r,
+      s: delegationSignatureA.s
+    }
+    const tx = await claimContract.connect(a).claimAndDelegate(id, proofA, claimA, a.address, delegationSigA);
+    expect(tx).to.emit(claimContract, 'Claimed').withArgs(a.address, claimA);
 
+    let proofB = getProof('./test/trees/tree.json', b.address);
+    let nonceB = await token.nonces(b.address);
+    let txNonceB = await claimContract.nonces(b.address);
+    expect(nonceB).to.eq(1);
+    expect(txNonceB).to.eq(0);
+    let delegateeB = c.address;
+    const delegationValuesB = {
+      delegatee: delegateeB,
+      nonce: nonceB,
+      expiry,
+    };
+    const delegationSignatureB = await getSignature(b, tokenDomain, C.delegationtype, delegationValuesB);
+    const delegationSigB = {
+      nonce: nonceB,
+      expiry,
+      v: delegationSignatureB.v,
+      r: delegationSignatureB.r,
+      s: delegationSignatureB.s
+    }
+    const txValuesB = {
+      campaignId: id,
+      claimer: b.address,
+      claimAmount: claimB,
+      nonce: txNonceB,
+      expiry,
+    }
+    const txSignatureB = await getSignature(b, claimDomain, C.claimType, txValuesB);
+    const txSigB = {
+      nonce: txNonceB,
+      expiry,
+      v: txSignatureB.v,
+      r: txSignatureB.r,
+      s: txSignatureB.s
+    }
+    const txB = await claimContract.connect(c).claimAndDelegateWithSig(id, proofB, b.address, claimB, txSigB, delegateeB, delegationSigB);
+    expect(txB).to.emit(claimContract, 'Claimed').withArgs(b.address, claimB);
+    expect(await token.delegates(b.address)).to.eq(delegateeB);
+    expect(await token.nonces(b.address)).to.eq(2);
+    expect(await claimContract.nonces(b.address)).to.eq(1);
   });
   it('DAO cancels campgain and unclaimed tokens are returned', async () => {
-
-  });
-  it('Fee Collector adjusts fee for special token', async () => {
-
+    expect(await claimContract.usedIds(id)).to.eq(true);
+    const remainder = (await claimContract.campaigns(id)).amount;
+    const tx = await claimContract.connect(dao).cancelCampaign(id);
+    expect(tx).to.emit(claimContract, 'CampaignCancelled').withArgs(id);
+    expect(tx).to.emit(token,'Transfer').withArgs(claimContract.target, dao.address, remainder);
   });
 };
 
 
 const unlockedErrorTests = () => {
-  let deployed, dao, feeCollector, a, b, c, d, e, token, claimContract, tokenDomain, claimDomain;
+  let deployed, dao, a, b, c, d, e, token, claimContract, tokenDomain, claimDomain;
   let amount, campaign, claimA, claimB, claimC, claimD, claimE, id;
   it('Creation will fail if DAO does not have enough tokens for the claim', async () => {
 
