@@ -117,7 +117,7 @@ contract DelegatedClaimCampaigns is ERC721Holder, ReentrancyGuard, EIP712, Nonce
     require(campaign.amount > 0, '0_amount');
     require(campaign.end > block.timestamp, 'end error');
     require(campaign.tokenLockup == TokenLockup.Unlocked, 'locked');
-    require(IERC20Votes(campaign.token).delegates(address(this)) == (address(0)), '!ERC20Votes');
+    require(IERC20Votes(campaign.token).delegates(address(this)) == (address(0)));
     TransferHelper.transferTokens(campaign.token, msg.sender, address(this), campaign.amount);
     campaigns[id] = campaign;
     emit CampaignStarted(id, campaign);
@@ -142,7 +142,7 @@ contract DelegatedClaimCampaigns is ERC721Holder, ReentrancyGuard, EIP712, Nonce
     require(campaign.amount > 0, '0_amount');
     require(campaign.end > block.timestamp, 'end error');
     require(campaign.tokenLockup != TokenLockup.Unlocked, '!locked');
-    require(IERC20Votes(campaign.token).delegates(address(this)) == (address(0)), '!ERC20Votes');
+    require(IERC20Votes(campaign.token).delegates(address(this)) == (address(0)));
     if (campaign.tokenLockup == TokenLockup.Vesting) {
       require(vestingAdmin != address(0), '0_admin');
       _vestingAdmins[id] = vestingAdmin;
@@ -178,7 +178,7 @@ contract DelegatedClaimCampaigns is ERC721Holder, ReentrancyGuard, EIP712, Nonce
     address delegatee,
     SignatureParams memory delegationSignature
   ) external nonReentrant {
-    require(delegatee != address(0), 'delegate 0 address');
+    require(delegatee != address(0), '0_delegatee');
     require(!claimed[campaignId][msg.sender], 'already claimed');
     if (campaigns[campaignId].tokenLockup == TokenLockup.Unlocked) {
       _claimUnlockedAndDelegate(
@@ -208,7 +208,7 @@ contract DelegatedClaimCampaigns is ERC721Holder, ReentrancyGuard, EIP712, Nonce
     address delegatee,
     SignatureParams memory delegationSignature
   ) external nonReentrant {
-    require(delegatee != address(0), 'delegate 0 address');
+    require(delegatee != address(0), '0_delegatee');
     require(!claimed[campaignId][msg.sender], 'already claimed');
     require(claimSignature.expiry > block.timestamp, 'claim expired');
     address signer = ECDSA.recover(

@@ -69,27 +69,27 @@ const lockupParamsMatrix = [
   }
 ]
 
-// describe('Testing the unlocked tests', () => {
+describe('Testing the unlocked tests', () => {
+  // paramsMatrix.forEach((params) => {
+  //   unlockedTests(params);
+  // });
+    unlockedErrorTests();
+});
+
+// describe('Testing the locked tests', () => {
 //   paramsMatrix.forEach((params) => {
-//     unlockedTests(params);
+//     lockupParamsMatrix.forEach((lockupParams) => {
+//       lockedTests(params, lockupParams);
+//     });
 //   });
-//     unlockedErrorTests();
+//   lockedErrorTests();
 // });
 
-describe('Testing the locked tests', () => {
-  paramsMatrix.forEach((params) => {
-    lockupParamsMatrix.forEach((lockupParams) => {
-      lockedTests(params, lockupParams);
-    });
-  });
-//   lockedErrorTests();
-});
-
-describe('Testing the vesting tests', () => {
-  paramsMatrix.forEach((params) => {
-    lockupParamsMatrix.forEach((lockupParams) => {
-      vestingTests(params, lockupParams);
-    });
-  });
+// describe('Testing the vesting tests', () => {
+//   paramsMatrix.forEach((params) => {
+//     lockupParamsMatrix.forEach((lockupParams) => {
+//       vestingTests(params, lockupParams);
+//     });
+//   });
   // vestingErrorTests();
-});
+// });
