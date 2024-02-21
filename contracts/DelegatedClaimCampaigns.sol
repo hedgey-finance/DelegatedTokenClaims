@@ -63,6 +63,7 @@ contract DelegatedClaimCampaigns is ERC721Holder, ReentrancyGuard, EIP712, Nonce
     address manager;
     address token;
     uint256 amount;
+    uint256 start;
     uint256 end;
     TokenLockup tokenLockup;
     bytes32 root;
@@ -256,6 +257,7 @@ contract DelegatedClaimCampaigns is ERC721Holder, ReentrancyGuard, EIP712, Nonce
     bytes32 s
   ) internal {
     Campaign memory campaign = campaigns[campaignId];
+    require(campaign.start <= block.timestamp, 'campaign not started');
     require(campaign.end > block.timestamp, 'campaign ended');
     require(verify(campaign.root, proof, claimer, claimAmount), '!eligible');
     require(campaign.amount >= claimAmount, 'campaign unfunded');
@@ -281,6 +283,7 @@ contract DelegatedClaimCampaigns is ERC721Holder, ReentrancyGuard, EIP712, Nonce
     address delegatee
   ) internal {
     Campaign memory campaign = campaigns[campaignId];
+    require(campaign.start <= block.timestamp, 'campaign not started');
     require(campaign.end > block.timestamp, 'campaign ended');
     require(verify(campaign.root, proof, claimer, claimAmount), '!eligible');
     require(campaign.amount >= claimAmount, 'campaign unfunded');
