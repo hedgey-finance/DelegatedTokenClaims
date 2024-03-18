@@ -15,10 +15,10 @@ const bigMax = (a, b) => {
   else return b;
 }
 
-const randomBigNum = (max, min) => {
+const randomBigNum = (max, min, decimals) => {
   let num = Math.round(Math.random() * max);
   num = BigInt(Math.max(num, min));
-  num = BigInt(10 ** 18) * num;
+  num = BigInt(10 ** decimals) * num;
   return num;
 };
 
