@@ -67,6 +67,7 @@ contract DelegatedClaimCampaigns is ERC721Holder, ReentrancyGuard, EIP712, Nonce
     uint256 end;
     TokenLockup tokenLockup;
     bytes32 root;
+    bool delegating;
   }
 
   struct SignatureParams {
@@ -143,7 +144,6 @@ contract DelegatedClaimCampaigns is ERC721Holder, ReentrancyGuard, EIP712, Nonce
     require(campaign.amount > 0, '0_amount');
     require(campaign.end > block.timestamp, 'end error');
     require(campaign.tokenLockup != TokenLockup.Unlocked, '!locked');
-    require(IERC20Votes(campaign.token).delegates(address(this)) == (address(0)));
     if (campaign.tokenLockup == TokenLockup.Vesting) {
       require(vestingAdmin != address(0), '0_admin');
       _vestingAdmins[id] = vestingAdmin;
@@ -157,8 +157,7 @@ contract DelegatedClaimCampaigns is ERC721Holder, ReentrancyGuard, EIP712, Nonce
     emit CampaignStarted(id, campaign);
   }
 
-
-   /// @notice this function allows the campaign manager to cancel an ongoing campaign at anytime. Cancelling a campaign will return any unclaimed tokens, and then prevent anyone from claiming additional tokens
+  /// @notice this function allows the campaign manager to cancel an ongoing campaign at anytime. Cancelling a campaign will return any unclaimed tokens, and then prevent anyone from claiming additional tokens
   /// @param campaignId is the id of the campaign to be cancelled
   function cancelCampaign(bytes16 campaignId) external nonReentrant {
     Campaign memory campaign = campaigns[campaignId];
@@ -169,8 +168,46 @@ contract DelegatedClaimCampaigns is ERC721Holder, ReentrancyGuard, EIP712, Nonce
     emit CampaignCancelled(campaignId);
   }
 
-
   /***************EXTERNAL CLAIMING FUNCTIONS***************************************************************************************************/
+
+  function claimTokens(bytes16 campaignId, bytes32[] memory proof, uint256 claimAmount) external nonReentrant {
+    require(!claimed[campaignId][msg.sender], 'already claimed');
+    require(!campaigns[campaignId].delegating, 'must delegate');
+    if (campaigns[campaignId].tokenLockup == TokenLockup.Unlocked) {
+      _claimUnlockedTokens(campaignId, proof, msg.sender, claimAmount);
+    } else {
+      _claimLockedTokens(campaignId, proof, msg.sender, claimAmount);
+    }
+  }
+
+  function claimTokensWithSig(
+    bytes16 campaignId,
+    bytes32[] memory proof,
+    address claimer,
+    uint256 claimAmount,
+    SignatureParams memory claimSignature
+  ) external nonReentrant {
+    require(!claimed[campaignId][claimer], 'already claimed');
+    require(!campaigns[campaignId].delegating, 'must delegate');
+    require(claimSignature.expiry > block.timestamp, 'claim expired');
+    address signer = ECDSA.recover(
+      _hashTypedDataV4(
+        keccak256(
+          abi.encode(CLAIM_TYPEHASH, campaignId, claimer, claimAmount, claimSignature.nonce, claimSignature.expiry)
+        )
+      ),
+      claimSignature.v,
+      claimSignature.r,
+      claimSignature.s
+    );
+    require(signer == claimer, 'invalid claim signature');
+    _useCheckedNonce(claimer, claimSignature.nonce);
+    if (campaigns[campaignId].tokenLockup == TokenLockup.Unlocked) {
+      _claimUnlockedTokens(campaignId, proof, claimer, claimAmount);
+    } else {
+      _claimLockedTokens(campaignId, proof, claimer, claimAmount);
+    }
+  }
 
   function claimAndDelegate(
     bytes16 campaignId,
@@ -238,11 +275,34 @@ contract DelegatedClaimCampaigns is ERC721Holder, ReentrancyGuard, EIP712, Nonce
         delegationSignature.s
       );
     } else {
-      _claimLockedAndDelegate(campaignId, proof,claimer, claimAmount, delegatee);
+      _claimLockedAndDelegate(campaignId, proof, claimer, claimAmount, delegatee);
     }
   }
 
   /*****INTERNAL CLAIMINIG FUNCTIONS**********************************************************************************************/
+
+  function _claimUnlockedTokens(
+    bytes16 campaignId,
+    bytes32[] memory proof,
+    address claimer,
+    uint256 claimAmount
+  ) internal returns (address token) {
+    Campaign memory campaign = campaigns[campaignId];
+    require(campaign.start <= block.timestamp, 'campaign not started');
+    require(campaign.end > block.timestamp, 'campaign ended');
+    require(verify(campaign.root, proof, claimer, claimAmount), '!eligible');
+    require(campaign.amount >= claimAmount, 'campaign unfunded');
+    require(campaign.tokenLockup == TokenLockup.Unlocked, '!unlocked');
+    claimed[campaignId][claimer] = true;
+    campaigns[campaignId].amount -= claimAmount;
+    if (campaigns[campaignId].amount == 0) {
+      delete campaigns[campaignId];
+    }
+    TransferHelper.withdrawTokens(campaign.token, claimer, claimAmount);
+    emit Claimed(claimer, claimAmount);
+    emit UnlockedTokensClaimed(campaignId, claimer, claimAmount, campaigns[campaignId].amount);
+    return campaign.token;
+  }
 
   function _claimUnlockedAndDelegate(
     bytes16 campaignId,
@@ -256,23 +316,62 @@ contract DelegatedClaimCampaigns is ERC721Holder, ReentrancyGuard, EIP712, Nonce
     bytes32 r,
     bytes32 s
   ) internal {
+    address token = _claimUnlockedTokens(campaignId, proof, claimer, claimAmount);
+    IERC20Votes(token).delegateBySig(delegatee, nonce, expiry, v, r, s);
+    address delegatedTo = IERC20Votes(token).delegates(claimer);
+    require(delegatedTo == delegatee, 'delegation failed');
+  }
+
+  function _claimLockedTokens(
+    bytes16 campaignId,
+    bytes32[] memory proof,
+    address claimer,
+    uint256 claimAmount
+  ) internal {
     Campaign memory campaign = campaigns[campaignId];
     require(campaign.start <= block.timestamp, 'campaign not started');
     require(campaign.end > block.timestamp, 'campaign ended');
     require(verify(campaign.root, proof, claimer, claimAmount), '!eligible');
     require(campaign.amount >= claimAmount, 'campaign unfunded');
-    require(campaign.tokenLockup == TokenLockup.Unlocked, '!unlocked');
     claimed[campaignId][claimer] = true;
     campaigns[campaignId].amount -= claimAmount;
     if (campaigns[campaignId].amount == 0) {
       delete campaigns[campaignId];
     }
-    TransferHelper.withdrawTokens(campaign.token, claimer, claimAmount);
-    IERC20Votes(campaign.token).delegateBySig(delegatee, nonce, expiry, v, r, s);
-    address delegatedTo = IERC20Votes(campaign.token).delegates(claimer);
-    require(delegatedTo == delegatee, 'delegation failed');
+    ClaimLockup memory c = claimLockups[campaignId];
+    uint256 rate;
+    if (claimAmount % c.periods == 0) {
+      rate = claimAmount / c.periods;
+    } else {
+      rate = claimAmount / c.periods + 1;
+    }
+    uint256 start = c.start == 0 ? block.timestamp : c.start;
+    uint256 tokenId;
+    if (campaign.tokenLockup == TokenLockup.Locked) {
+      tokenId = ILockupPlans(c.tokenLocker).createPlan(
+        claimer,
+        campaign.token,
+        claimAmount,
+        start,
+        c.cliff,
+        rate,
+        c.period
+      );
+    } else {
+      tokenId = IVestingPlans(c.tokenLocker).createPlan(
+        claimer,
+        campaign.token,
+        claimAmount,
+        start,
+        c.cliff,
+        rate,
+        c.period,
+        _vestingAdmins[campaignId],
+        true
+      );
+    }
     emit Claimed(claimer, claimAmount);
-    emit UnlockedTokensClaimed(campaignId, claimer, claimAmount, campaigns[campaignId].amount);
+    emit TokensClaimed(campaignId, claimer, claimAmount, campaigns[campaignId].amount);
   }
 
   function _claimLockedAndDelegate(
@@ -287,6 +386,7 @@ contract DelegatedClaimCampaigns is ERC721Holder, ReentrancyGuard, EIP712, Nonce
     require(campaign.end > block.timestamp, 'campaign ended');
     require(verify(campaign.root, proof, claimer, claimAmount), '!eligible');
     require(campaign.amount >= claimAmount, 'campaign unfunded');
+    require(IERC20Votes(campaign.token).delegates(address(this)) == (address(0)));
     claimed[campaignId][claimer] = true;
     campaigns[campaignId].amount -= claimAmount;
     if (campaigns[campaignId].amount == 0) {
