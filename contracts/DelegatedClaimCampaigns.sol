@@ -170,7 +170,7 @@ contract DelegatedClaimCampaigns is ERC721Holder, ReentrancyGuard, EIP712, Nonce
 
   /***************EXTERNAL CLAIMING FUNCTIONS***************************************************************************************************/
 
-  function claimTokens(bytes16 campaignId, bytes32[] memory proof, uint256 claimAmount) external nonReentrant {
+  function claim(bytes16 campaignId, bytes32[] memory proof, uint256 claimAmount) external nonReentrant {
     require(!claimed[campaignId][msg.sender], 'already claimed');
     require(!campaigns[campaignId].delegating, 'must delegate');
     if (campaigns[campaignId].tokenLockup == TokenLockup.Unlocked) {
@@ -180,7 +180,7 @@ contract DelegatedClaimCampaigns is ERC721Holder, ReentrancyGuard, EIP712, Nonce
     }
   }
 
-  function claimTokensWithSig(
+  function claimWithSig(
     bytes16 campaignId,
     bytes32[] memory proof,
     address claimer,
