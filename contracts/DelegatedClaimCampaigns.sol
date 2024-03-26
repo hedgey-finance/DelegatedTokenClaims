@@ -170,7 +170,7 @@ contract DelegatedClaimCampaigns is ERC721Holder, ReentrancyGuard, EIP712, Nonce
 
   /***************EXTERNAL CLAIMING FUNCTIONS***************************************************************************************************/
 
-  function claim(bytes16 campaignId, bytes32[] memory proof, uint256 claimAmount) external nonReentrant {
+  function claim(bytes16 campaignId, bytes32[] calldata proof, uint256 claimAmount) external nonReentrant {
     require(!claimed[campaignId][msg.sender], 'already claimed');
     require(!campaigns[campaignId].delegating, 'must delegate');
     if (campaigns[campaignId].tokenLockup == TokenLockup.Unlocked) {
@@ -180,9 +180,27 @@ contract DelegatedClaimCampaigns is ERC721Holder, ReentrancyGuard, EIP712, Nonce
     }
   }
 
+  function claimMultiple(
+    bytes16[] calldata campaignId,
+    bytes32[][] calldata proofs,
+    uint256[] calldata claimAmounts
+  ) external nonReentrant {
+    require(campaignId.length == proofs.length, 'length mismatch');
+    require(campaignId.length == claimAmounts.length, 'length mismatch');
+    for (uint256 i = 0; i < campaignId.length; i++) {
+      require(!claimed[campaignId[i]][msg.sender], 'already claimed');
+      require(!campaigns[campaignId[i]].delegating, 'must delegate');
+      if (campaigns[campaignId[i]].tokenLockup == TokenLockup.Unlocked) {
+        _claimUnlockedTokens(campaignId[i], proofs[i], msg.sender, claimAmounts[i]);
+      } else {
+        _claimLockedTokens(campaignId[i], proofs[i], msg.sender, claimAmounts[i]);
+      }
+    }
+  }
+
   function claimWithSig(
     bytes16 campaignId,
-    bytes32[] memory proof,
+    bytes32[] calldata proof,
     address claimer,
     uint256 claimAmount,
     SignatureParams memory claimSignature
