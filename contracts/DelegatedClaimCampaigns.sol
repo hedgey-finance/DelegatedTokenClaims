@@ -16,8 +16,6 @@ import '@openzeppelin/contracts/utils/cryptography/EIP712.sol';
 import '@openzeppelin/contracts/utils/cryptography/ECDSA.sol';
 import '@openzeppelin/contracts/utils/Nonces.sol';
 
-import 'hardhat/console.sol';
-
 /// @title ClaimCampaigns - The smart contract to distribute your tokens to the community via claims
 /// @notice This tool allows token projects to safely, securely and efficiently distribute your tokens in large scale to your community, whereby they can claim them based on your criteria of wallet address and amount.
 
