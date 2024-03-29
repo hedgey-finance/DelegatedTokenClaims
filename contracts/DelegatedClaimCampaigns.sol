@@ -100,7 +100,7 @@ contract DelegatedClaimCampaigns is ERC721Holder, ReentrancyGuard, EIP712, Nonce
   mapping(bytes16 => address) private _vestingAdmins;
 
   // events
-  event CampaignStarted(bytes16 indexed id, Campaign campaign);
+  event CampaignStarted(bytes16 indexed id, Campaign campaign, uint256 totalClaimers);
   event ClaimLockupCreated(bytes16 indexed id, ClaimLockup claimLockup);
   event CampaignCancelled(bytes16 indexed id);
   event LockedTokensClaimed(bytes16 indexed id, address indexed claimer, uint256 amountClaimed, uint256 amountRemaining);
@@ -121,7 +121,8 @@ contract DelegatedClaimCampaigns is ERC721Holder, ReentrancyGuard, EIP712, Nonce
   /// @dev the merkle tree needs to be pre-generated, so that you can upload the root and the uuid for the function
   /// @param id is the uuid or CID of the file that stores the merkle tree
   /// @param campaign is the struct of the campaign info, including the total amount tokens to be distributed via claims, and the root of the merkle tree
-  function createUnlockedCampaign(bytes16 id, Campaign memory campaign) external nonReentrant {
+  /// @param totalClaimers is the total number of claimers that can claim from the campaign
+  function createUnlockedCampaign(bytes16 id, Campaign memory campaign, uint256 totalClaimers) external nonReentrant {
     require(!usedIds[id], 'in use');
     usedIds[id] = true;
     require(campaign.token != address(0), '0_address');
@@ -131,7 +132,7 @@ contract DelegatedClaimCampaigns is ERC721Holder, ReentrancyGuard, EIP712, Nonce
     require(campaign.tokenLockup == TokenLockup.Unlocked, 'locked');
     TransferHelper.transferTokens(campaign.token, msg.sender, address(this), campaign.amount);
     campaigns[id] = campaign;
-    emit CampaignStarted(id, campaign);
+    emit CampaignStarted(id, campaign, totalClaimers);
   }
 
   /// @notice primary function for creating an locked or vesting claims campaign. This function will pull the amount of tokens in the campaign struct, and map the campaign and claimLockup to the id.
@@ -145,7 +146,8 @@ contract DelegatedClaimCampaigns is ERC721Holder, ReentrancyGuard, EIP712, Nonce
     bytes16 id,
     Campaign memory campaign,
     ClaimLockup memory claimLockup,
-    address vestingAdmin
+    address vestingAdmin,
+    uint256 totalClaimers
   ) external nonReentrant {
     require(!usedIds[id], 'in use');
     usedIds[id] = true;
@@ -164,7 +166,7 @@ contract DelegatedClaimCampaigns is ERC721Holder, ReentrancyGuard, EIP712, Nonce
     SafeERC20.safeIncreaseAllowance(IERC20(campaign.token), claimLockup.tokenLocker, campaign.amount);
     campaigns[id] = campaign;
     emit ClaimLockupCreated(id, claimLockup);
-    emit CampaignStarted(id, campaign);
+    emit CampaignStarted(id, campaign, totalClaimers);
   }
 
   /// @notice this function allows the campaign manager to cancel an ongoing campaign at anytime. Cancelling a campaign will return any unclaimed tokens, and then prevent anyone from claiming additional tokens
