@@ -129,7 +129,6 @@ contract DelegatedClaimCampaigns is ERC721Holder, ReentrancyGuard, EIP712, Nonce
     require(campaign.amount > 0, '0_amount');
     require(campaign.end > block.timestamp, 'end error');
     require(campaign.tokenLockup == TokenLockup.Unlocked, 'locked');
-    require(IERC20Votes(campaign.token).delegates(address(this)) == (address(0)));
     TransferHelper.transferTokens(campaign.token, msg.sender, address(this), campaign.amount);
     campaigns[id] = campaign;
     emit CampaignStarted(id, campaign);
