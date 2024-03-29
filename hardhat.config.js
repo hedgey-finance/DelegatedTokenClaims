@@ -1,6 +1,7 @@
 require("@nomicfoundation/hardhat-ethers");
 require('dotenv').config();
 require('@nomicfoundation/hardhat-chai-matchers');
+require('@nomicfoundation/hardhat-verify');
 
 module.exports = {
   solidity: {
@@ -22,16 +23,7 @@ module.exports = {
   networks: {
     sepolia: {
       url: process.env.SEPOLIA_URL,
-      accounts: [process.env.TEST_DEPLOYER_PRIVATE_KEY, process.env.TOKEN_DEPLOYER],
-    },
-    goerli: {
-      url: process.env.GOERLI_URL,
       accounts: [process.env.TEST_DEPLOYER_PRIVATE_KEY],
-    },
-    optimisticGoerli: {
-      url: process.env.OPTIMISTIC_GOERLI_URL,
-      accounts: [process.env.TEST_DEPLOYER_PRIVATE_KEY, process.env.TOKEN_DEPLOYER],
-      gasPrice: 2000000000,
     },
     mainnet: {
       url: process.env.MAINNET_URL,
@@ -105,16 +97,12 @@ module.exports = {
     },
     viction: {
       url: process.env.VICTION_URL,
-      accounts: [process.env.DEPLOYER_PRIVATE_KEY, process.env.NEW_CLAIM_PRIVATE_KEY],
+      accounts: [process.env.DEPLOYER_PRIVATE_KEY, process.env.TOKEN_DEPLOYER],
     },
     pgn: {
       url: process.env.PGN_URL,
       accounts: [process.env.DEPLOYER_PRIVATE_KEY, process.env.TOKEN_DEPLOYER],
       gasPrice: 1500000000,
-    },
-    lineaTestnet: {
-      url: process.env.LINEAGOERLI_URL,
-      accounts: [process.env.TOKEN_DEPLOYER],
     },
     linea: {
       url: process.env.LINEA_URL,
@@ -130,7 +118,7 @@ module.exports = {
     },
     swissDLT: {
       url: process.env.SWISSDLT_URL,
-      accounts: [process.env.DEPLOYER_PRIVATE_KEY, process.env.NEW_CLAIM_PRIVATE_KEY],
+      accounts: [process.env.DEPLOYER_PRIVATE_KEY, process.env.TOKEN_DEPLOYER],
     },
   },
   etherscan: {
