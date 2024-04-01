@@ -7,6 +7,7 @@ module.exports = async (tokenDecimals) => {
     const Lockup = await ethers.getContractFactory('VotingTokenLockupPlans');
     const Vesting = await ethers.getContractFactory('VotingTokenVestingPlans');
     const Token = await ethers.getContractFactory('Token');
+    const NVToken = await ethers.getContractFactory('NonVotingToken');
     const ClaimContract = await ethers.getContractFactory('DelegatedClaimCampaigns');
     const lockup = await Lockup.deploy('TimeLock', 'TL');
     await lockup.waitForDeployment();
@@ -15,6 +16,8 @@ module.exports = async (tokenDecimals) => {
     let supply = BigInt(10 ** tokenDecimals) * BigInt(1000000);
     const token = await Token.deploy('Token', 'TKN', supply, tokenDecimals);
     await token.waitForDeployment();
+    const nvToken = await NVToken.deploy('NonVotingToken', 'NVT', BigInt(10 ** 18) * BigInt(1000000));
+    await nvToken.waitForDeployment();
     const claimName = 'DelegatedClaimCampaigns'
     const version = '1';
     const claimContract = await ClaimContract.deploy(claimName, version);
@@ -42,6 +45,7 @@ module.exports = async (tokenDecimals) => {
         lockup,
         vesting,
         token,
+        nvToken,
         claimContract,
         tokenDomain,
         claimDomain,

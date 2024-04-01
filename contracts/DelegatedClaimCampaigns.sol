@@ -16,6 +16,8 @@ import '@openzeppelin/contracts/utils/cryptography/EIP712.sol';
 import '@openzeppelin/contracts/utils/cryptography/ECDSA.sol';
 import '@openzeppelin/contracts/utils/Nonces.sol';
 
+// import 'hardhat/console.sol';
+
 /// @title ClaimCampaigns - The smart contract to distribute your tokens to the community via claims
 /// @notice This tool allows token projects to safely, securely and efficiently distribute your tokens in large scale to your community, whereby they can claim them based on your criteria of wallet address and amount.
 
@@ -128,8 +130,11 @@ contract DelegatedClaimCampaigns is ERC721Holder, ReentrancyGuard, EIP712, Nonce
     require(campaign.token != address(0), '0_address');
     require(campaign.manager != address(0), '0_manager');
     require(campaign.amount > 0, '0_amount');
-    require(campaign.end > block.timestamp, 'end error');
+    require(campaign.end > block.timestamp && campaign.end > campaign.start, 'end error');
     require(campaign.tokenLockup == TokenLockup.Unlocked, 'locked');
+    if (campaign.delegating) {
+      require(IERC20Votes(campaign.token).delegates(address(this)) == address(0), '!erc20votes');
+    }
     TransferHelper.transferTokens(campaign.token, msg.sender, address(this), campaign.amount);
     campaigns[id] = campaign;
     emit CampaignStarted(id, campaign, totalClaimers);
@@ -154,8 +159,11 @@ contract DelegatedClaimCampaigns is ERC721Holder, ReentrancyGuard, EIP712, Nonce
     require(campaign.token != address(0), '0_address');
     require(campaign.manager != address(0), '0_manager');
     require(campaign.amount > 0, '0_amount');
-    require(campaign.end > block.timestamp, 'end error');
+    require(campaign.end > block.timestamp && campaign.end > campaign.start, 'end error');
     require(campaign.tokenLockup != TokenLockup.Unlocked, '!locked');
+    if (campaign.delegating) {
+      require(IERC20Votes(campaign.token).delegates(address(this)) == address(0), '!erc20votes');
+    }
     if (campaign.tokenLockup == TokenLockup.Vesting) {
       require(vestingAdmin != address(0), '0_admin');
       _vestingAdmins[id] = vestingAdmin;
@@ -307,7 +315,7 @@ contract DelegatedClaimCampaigns is ERC721Holder, ReentrancyGuard, EIP712, Nonce
     SignatureParams memory delegationSignature
   ) external nonReentrant {
     require(delegatee != address(0), '0_delegatee');
-    require(!claimed[campaignId][msg.sender], 'already claimed');
+    require(!claimed[campaignId][claimer], 'already claimed');
     require(claimSignature.expiry > block.timestamp, 'claim expired');
     address signer = ECDSA.recover(
       _hashTypedDataV4(
@@ -361,7 +369,7 @@ contract DelegatedClaimCampaigns is ERC721Holder, ReentrancyGuard, EIP712, Nonce
     uint256 claimAmount
   ) internal returns (address token) {
     Campaign memory campaign = campaigns[campaignId];
-    require(campaign.start <= block.timestamp, 'campaign not started');
+    require(campaign.start <= block.timestamp, '!started');
     require(campaign.end > block.timestamp, 'campaign ended');
     require(verify(campaign.root, proof, claimer, claimAmount), '!eligible');
     require(campaign.amount >= claimAmount, 'campaign unfunded');
@@ -427,7 +435,7 @@ contract DelegatedClaimCampaigns is ERC721Holder, ReentrancyGuard, EIP712, Nonce
     uint256 claimAmount
   ) internal {
     Campaign memory campaign = campaigns[campaignId];
-    require(campaign.start <= block.timestamp, 'campaign not started');
+    require(campaign.start <= block.timestamp, '!started');
     require(campaign.end > block.timestamp, 'campaign ended');
     require(verify(campaign.root, proof, claimer, claimAmount), '!eligible');
     require(campaign.amount >= claimAmount, 'campaign unfunded');
@@ -496,11 +504,10 @@ contract DelegatedClaimCampaigns is ERC721Holder, ReentrancyGuard, EIP712, Nonce
     address delegatee
   ) internal {
     Campaign memory campaign = campaigns[campaignId];
-    require(campaign.start <= block.timestamp, 'campaign not started');
+    require(campaign.start <= block.timestamp, '!started');
     require(campaign.end > block.timestamp, 'campaign ended');
     require(verify(campaign.root, proof, claimer, claimAmount), '!eligible');
     require(campaign.amount >= claimAmount, 'campaign unfunded');
-    require(IERC20Votes(campaign.token).delegates(address(this)) == (address(0)));
     claimed[campaignId][claimer] = true;
     campaigns[campaignId].amount -= claimAmount;
     if (campaigns[campaignId].amount == 0) {

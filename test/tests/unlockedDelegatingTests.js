@@ -7,7 +7,7 @@ const { createTree, getProof } = require('../merkleGenerator');
 const { ethers } = require('hardhat');
 const { v4: uuidv4, parse: uuidParse } = require('uuid');
 
-const unlockedTests = (params) => {
+const unlockedDelegatingTests = (params) => {
   let deployed, dao, a, b, c, d, e, token, claimContract, tokenDomain, claimDomain;
   let amount, campaign, claimA, claimB, claimC, claimD, claimE, id;
   it(`DAO creates an unlocked claim campaign`, async () => {
@@ -52,16 +52,22 @@ const unlockedTests = (params) => {
     }
     const root = createTree(treevalues, ['address', 'uint256']);
     let now = BigInt(await time.latest());
+    let start = now;
     let end = BigInt(60 * 60 * 24 * 7) + now;
     campaign = {
       manager: dao.address,
       token: token.target,
       amount,
+      start,
       end,
       tokenLockup: 0,
       root,
+      delegating: true,
     };
-    await expect(claimContract.createUnlockedCampaign(id, campaign)).to.emit(claimContract, 'CampaignStarted');
+    await expect(claimContract.createUnlockedCampaign(id, campaign, BigInt(treevalues.length))).to.emit(
+      claimContract,
+      'CampaignStarted'
+    );
     expect(await token.balanceOf(claimContract.target)).to.eq(amount);
     expect(await claimContract.usedIds(id)).to.eq(true);
   });
@@ -228,11 +234,16 @@ const unlockedTests = (params) => {
       manager: dao.address,
       token: token.target,
       amount,
+      start: now,
       end,
       tokenLockup: 0,
       root,
+      delegating: true,
     };
-    await expect(claimContract.createUnlockedCampaign(id, campaign)).to.emit(claimContract, 'CampaignStarted');
+    await expect(claimContract.createUnlockedCampaign(id, campaign, BigInt(treevalues.length))).to.emit(
+      claimContract,
+      'CampaignStarted'
+    );
     let proofA = getProof('./test/trees/tree.json', a.address);
     let expiry = BigInt(await time.latest()) + BigInt(60 * 60 * 24 * 7);
     const nonceA = await token.nonces(a.address);
@@ -304,7 +315,7 @@ const unlockedTests = (params) => {
   });
 };
 
-const unlockedErrorTests = () => {
+const unlockedDelegatingErrorTests = () => {
   let deployed, dao, a, b, c, d, e, token, claimContract, tokenDomain, claimDomain;
   let amount, campaign, claimA, claimB, claimC, claimD, claimE, id, firstId;
   it('Creation will fail if user does not have enough tokens or insufficient allowance to setup the claim', async () => {
@@ -354,49 +365,51 @@ const unlockedErrorTests = () => {
       manager: e.address,
       token: token.target,
       amount,
+      start: now,
       end,
       tokenLockup: 0,
       root,
+      delegating: true,
     };
-    await expect(claimContract.connect(e).createUnlockedCampaign(id, campaign)).to.be.revertedWith('THL01');
+    await expect(claimContract.connect(e).createUnlockedCampaign(id, campaign, 0)).to.be.revertedWith('THL01');
     await token.connect(dao).approve(claimContract.target, 0);
-    await expect(claimContract.connect(dao).createUnlockedCampaign(id, campaign)).to.be.reverted;
+    await expect(claimContract.connect(dao).createUnlockedCampaign(id, campaign, 0)).to.be.reverted;
     await token.connect(dao).approve(claimContract.target, C.E18_1000000);
-    await claimContract.connect(dao).createUnlockedCampaign(id, campaign);
+    await claimContract.connect(dao).createUnlockedCampaign(id, campaign, 0);
     firstId = id;
   });
   it('Creation will fail if a claim ID is already in use or has been used', async () => {
-    await expect(claimContract.connect(dao).createUnlockedCampaign(id, campaign)).to.be.revertedWith('in use');
+    await expect(claimContract.connect(dao).createUnlockedCampaign(id, campaign, 0)).to.be.revertedWith('in use');
   });
   it('Creation will fail with a 0x0 token address', async () => {
     const uuid = uuidv4();
     id = uuidParse(uuid);
     campaign.token = C.ZERO_ADDRESS;
-    await expect(claimContract.createUnlockedCampaign(id, campaign)).to.be.revertedWith('0_address');
+    await expect(claimContract.createUnlockedCampaign(id, campaign, 0)).to.be.revertedWith('0_address');
   });
   it('Creation will fail with a 0x0 manager address', async () => {
     campaign.token = token.target;
     campaign.manager = C.ZERO_ADDRESS;
-    await expect(claimContract.createUnlockedCampaign(id, campaign)).to.be.revertedWith('0_manager');
+    await expect(claimContract.createUnlockedCampaign(id, campaign, 0)).to.be.revertedWith('0_manager');
   });
   it('Creation will fail if amount is 0', async () => {
     campaign.manager = dao.address;
     campaign.amount = 0;
-    await expect(claimContract.createUnlockedCampaign(id, campaign)).to.be.revertedWith('0_amount');
+    await expect(claimContract.createUnlockedCampaign(id, campaign, 0)).to.be.revertedWith('0_amount');
   });
   it('Creation will fail if the end is in the past', async () => {
     let now = BigInt(await time.latest());
     campaign.amount = amount;
     campaign.end = now - BigInt(10);
-    await expect(claimContract.createUnlockedCampaign(id, campaign)).to.be.revertedWith('end error');
+    await expect(claimContract.createUnlockedCampaign(id, campaign, 0)).to.be.revertedWith('end error');
   });
   it('Creation will fail if the lockup type is not set to Unlocked', async () => {
     let now = BigInt(await time.latest());
     campaign.end = now + BigInt(60 * 60 * 24 * 7);
     campaign.tokenLockup = 1;
-    await expect(claimContract.createUnlockedCampaign(id, campaign)).to.be.revertedWith('locked');
+    await expect(claimContract.createUnlockedCampaign(id, campaign, 0)).to.be.revertedWith('locked');
     campaign.tokenLockup = 2;
-    await expect(claimContract.createUnlockedCampaign(id, campaign)).to.be.revertedWith('locked');
+    await expect(claimContract.createUnlockedCampaign(id, campaign, 0)).to.be.revertedWith('locked');
     campaign.tokenLockup = 0;
   });
   it('Not the manager cannot cancel a claim', async () => {
@@ -431,7 +444,7 @@ const unlockedErrorTests = () => {
     campaign.manager = dao.address;
     campaign.amount = amount;
     campaign.end = BigInt(await time.latest()) + BigInt(2);
-    await claimContract.connect(dao).createUnlockedCampaign(id, campaign);
+    await claimContract.connect(dao).createUnlockedCampaign(id, campaign, 0);
     let proof = getProof('./test/trees/tree.json', a.address);
     let delegatee = a.address;
     let expiry = BigInt(await time.latest()) + BigInt(60 * 60 * 24 * 7);
@@ -457,7 +470,7 @@ const unlockedErrorTests = () => {
     const uuid = uuidv4();
     id = uuidParse(uuid);
     campaign.end = BigInt(await time.latest()) + BigInt(60 * 60 * 24);
-    await claimContract.connect(dao).createUnlockedCampaign(id, campaign);
+    await claimContract.connect(dao).createUnlockedCampaign(id, campaign, 0);
     let proof = getProof('./test/trees/tree.json', a.address);
     let delegatee = a.address;
     let expiry = BigInt(await time.latest()) + BigInt(60 * 60 * 24 * 7);
@@ -788,22 +801,170 @@ const unlockedErrorTests = () => {
       claimContract.connect(dao).claimAndDelegateWithSig(id, proof, c.address, claimB, txSig, delegatee, delegationSig)
     ).to.be.revertedWith('invalid claim signature');
     await expect(
-      claimContract.connect(dao).claimAndDelegateWithSig(id, proof, b.address, claimB + BigInt(1), txSig, delegatee, delegationSig)
+      claimContract
+        .connect(dao)
+        .claimAndDelegateWithSig(id, proof, b.address, claimB + BigInt(1), txSig, delegatee, delegationSig)
     ).to.be.revertedWith('invalid claim signature');
   });
-  it('Creation will fail with a token that does not have delegation ability', async () => {
-    const NonVotingToken = await ethers.getContractFactory('NonVotingToken');
-    const nvToken = await NonVotingToken.deploy('NonVotingToken', 'NVT', C.E18_1000000);
-    await nvToken.waitForDeployment();
-    await nvToken.approve(claimContract.target, C.E18_1000000);
+  it('user cannot claim with the non delegating function for a delegating claim campaign', async () => {
+    let treevalues = [];
+    amount = BigInt(0);
     const uuid = uuidv4();
     id = uuidParse(uuid);
-    campaign.token = nvToken.target;
-    await expect(claimContract.createUnlockedCampaign(id, campaign)).to.be.reverted;
-  })
+    for (let i = 0; i < 10; i++) {
+      let wallet;
+      let amt = C.randomBigNum(1000, 10, 18);
+      if (i == 0) {
+        wallet = a.address;
+        claimA = amt;
+      } else if (i == 1) {
+        wallet = b.address;
+        claimB = amt;
+      } else if (i == 2) {
+        wallet = c.address;
+        claimC = amt;
+      } else if (i == 3) {
+        wallet = d.address;
+        claimD = amt;
+      } else if (i == 4) {
+        wallet = e.address;
+        claimE = amt;
+      } else {
+        wallet = ethers.Wallet.createRandom().address;
+      }
+      amount = amt + amount;
+      treevalues.push([wallet, amt.toString()]);
+    }
+    const root = createTree(treevalues, ['address', 'uint256']);
+    let now = BigInt(await time.latest());
+    let end = BigInt(60 * 60 * 24 * 7) + now;
+    campaign = {
+      manager: e.address,
+      token: token.target,
+      amount,
+      start: now,
+      end,
+      tokenLockup: 0,
+      root,
+      delegating: true,
+    };
+    await claimContract.createUnlockedCampaign(id, campaign, BigInt(treevalues.length));
+    let proof = getProof('./test/trees/tree.json', a.address);
+    await expect(claimContract.connect(a).claim(id, proof, claimA)).to.be.revertedWith('must delegate');
+  });
+  it('cannot claim before the start date', async () => {
+    let treevalues = [];
+    amount = BigInt(0);
+    const uuid = uuidv4();
+    id = uuidParse(uuid);
+    for (let i = 0; i < 10; i++) {
+      let wallet;
+      let amt = C.randomBigNum(1000, 10, 18);
+      if (i == 0) {
+        wallet = a.address;
+        claimA = amt;
+      } else if (i == 1) {
+        wallet = b.address;
+        claimB = amt;
+      } else if (i == 2) {
+        wallet = c.address;
+        claimC = amt;
+      } else if (i == 3) {
+        wallet = d.address;
+        claimD = amt;
+      } else if (i == 4) {
+        wallet = e.address;
+        claimE = amt;
+      } else {
+        wallet = ethers.Wallet.createRandom().address;
+      }
+      amount = amt + amount;
+      treevalues.push([wallet, amt.toString()]);
+    }
+    const root = createTree(treevalues, ['address', 'uint256']);
+    let now = BigInt(await time.latest());
+    let end = BigInt(60 * 60 * 24 * 7) + now;
+    campaign = {
+      manager: e.address,
+      token: token.target,
+      amount,
+      start: now + BigInt(100),
+      end,
+      tokenLockup: 0,
+      root,
+      delegating: true,
+    };
+    await claimContract.createUnlockedCampaign(id, campaign, BigInt(treevalues.length));
+    let proof = getProof('./test/trees/tree.json', a.address);
+    let delegatee = a.address;
+    let expiry = BigInt(await time.latest()) + BigInt(60 * 60 * 24 * 7);
+    let nonce = 0;
+    const delegationValues = {
+      delegatee,
+      nonce,
+      expiry,
+    };
+    const delegationSignature = await getSignature(a, tokenDomain, C.delegationtype, delegationValues);
+    const delegationSig = {
+      nonce,
+      expiry,
+      v: delegationSignature.v,
+      r: delegationSignature.r,
+      s: delegationSignature.s,
+    };
+    await expect(
+      claimContract.connect(a).claimAndDelegate(id, proof, claimA, delegatee, delegationSig)
+    ).to.be.revertedWith('campaign not started');
+  });
+  it('will revert if creating a delegating campaign with a ERC20 that isnt ERC20Votes', async () => {
+    let nvToken = deployed.nvToken;
+    let treevalues = [];
+    amount = BigInt(0);
+    const uuid = uuidv4();
+    id = uuidParse(uuid);
+    for (let i = 0; i < 10; i++) {
+      let wallet;
+      let amt = C.randomBigNum(1000, 10, 18);
+      if (i == 0) {
+        wallet = a.address;
+        claimA = amt;
+      } else if (i == 1) {
+        wallet = b.address;
+        claimB = amt;
+      } else if (i == 2) {
+        wallet = c.address;
+        claimC = amt;
+      } else if (i == 3) {
+        wallet = d.address;
+        claimD = amt;
+      } else if (i == 4) {
+        wallet = e.address;
+        claimE = amt;
+      } else {
+        wallet = ethers.Wallet.createRandom().address;
+      }
+      amount = amt + amount;
+      treevalues.push([wallet, amt.toString()]);
+    }
+    await nvToken.approve(claimContract.target, C.E18_1000000);
+    const root = createTree(treevalues, ['address', 'uint256']);
+    let now = BigInt(await time.latest());
+    let end = BigInt(60 * 60 * 24 * 7) + now;
+    campaign = {
+      manager: e.address,
+      token: nvToken.target,
+      amount,
+      start: now + BigInt(100),
+      end,
+      tokenLockup: 0,
+      root,
+      delegating: true,
+    };
+    await expect(claimContract.createUnlockedCampaign(id, campaign, BigInt(treevalues.length))).to.be.reverted;
+  });
 };
 
 module.exports = {
-  unlockedTests,
-  unlockedErrorTests,
+  unlockedDelegatingTests,
+  unlockedDelegatingErrorTests,
 };
