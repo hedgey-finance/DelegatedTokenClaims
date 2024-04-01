@@ -113,6 +113,7 @@ const lockedDelegatingTests = (params, lockupParams) => {
     expect(tx).to.emit(claimContract, 'TokensClaimed').withArgs(id, a.address, claimA, remainder);
     expect(tx).to.emit(token, 'Transfer').withArgs(claimContract.target, lockup.target, claimA);
     let rate = claimA % periods == 0 ? BigInt(claimA / periods) : BigInt(claimA / periods) + BigInt(1);
+    let expectedStart = lockupParams.start == 0 ? BigInt((await time.latest())) : start;
     expect(tx)
       .to.emit(lockup, 'PlanCreated')
       .withArgs(1, a.address, token.target, claimA, start, cliff, end, rate, period);
@@ -124,7 +125,7 @@ const lockedDelegatingTests = (params, lockupParams) => {
     const plan = await lockup.plans(1);
     expect(plan.amount).to.eq(claimA);
     expect(plan.token).to.eq(token.target);
-    expect(plan.start).to.eq(start);
+    expect(plan.start).to.eq(expectedStart);
     expect(plan.cliff).to.eq(cliff);
     expect(plan.period).to.eq(period);
     expect(plan.rate).to.eq(rate);

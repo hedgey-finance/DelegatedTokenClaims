@@ -91,12 +91,13 @@ const vestingTests = (params, lockupParams, delegating) => {
     });
     it('wallet A claims tokens from the locked campaign', async () => {
       let proof = getProof('./test/trees/tree.json', a.address);
+      let expectedStart = lockupParams.start == 0 ? BigInt((await time.latest()) + 1) : start;
       let tx = await claimContract.connect(a).claim(id, proof, claimA);
       expect(tx).to.emit(token, 'Transfer').withArgs(claimContract.target, lockup.target, claimA);
       expect(await token.balanceOf(lockup.target)).to.eq(claimA);
       expect(await lockup.balanceOf(a.address)).to.eq(1);
       let lockDetails = await lockup.plans(1);
-      expect(lockDetails.start).to.eq(start);
+      expect(lockDetails.start).to.eq(expectedStart);
       expect(lockDetails.cliff).to.eq(cliff);
       expect(lockDetails.period).to.eq(period);
       expect(lockDetails.token).to.eq(token.target);

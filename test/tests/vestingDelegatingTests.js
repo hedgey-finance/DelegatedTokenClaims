@@ -108,6 +108,7 @@ const vestingDelegatingTests = (params, lockupParams) => {
     expect(tx).to.emit(claimContract, 'TokensClaimed').withArgs(id, a.address, claimA, remainder);
     expect(tx).to.emit(token, 'Transfer').withArgs(claimContract.target, vesting.target, claimA);
     let rate = claimA % periods == 0 ? BigInt(claimA / periods) : BigInt(claimA / periods) + BigInt(1);
+    let expectedStart = lockupParams.start == 0 ? BigInt((await time.latest())) : start;
     expect(tx)
       .to.emit(vesting, 'PlanCreated')
       .withArgs(1, vesting.target, token.target, claimA, start, cliff, end, rate, period, vesting.target, true);
@@ -121,7 +122,7 @@ const vestingDelegatingTests = (params, lockupParams) => {
     const plan = await vesting.plans(1);
     expect(plan.amount).to.eq(claimA);
     expect(plan.token).to.eq(token.target);
-    expect(plan.start).to.eq(start);
+    expect(plan.start).to.eq(expectedStart);
     expect(plan.cliff).to.eq(cliff);
     expect(plan.period).to.eq(period);
     expect(plan.rate).to.eq(rate);
@@ -144,6 +145,7 @@ const vestingDelegatingTests = (params, lockupParams) => {
     expect(tx).to.emit(claimContract, 'TokensClaimed').withArgs(id, b.address, claimB, remainder);
     expect(tx).to.emit(token, 'Transfer').withArgs(claimContract.target, vesting.target, claimB);
     let rate = claimB % periods == 0 ? BigInt(claimB / periods) : BigInt(claimB / periods) + BigInt(1);
+    let expectedStart = lockupParams.start == 0 ? BigInt((await time.latest())) : start;
     expect(tx)
       .to.emit(vesting, 'PlanCreated')
       .withArgs(2, vesting.target, token.target, claimB, start, cliff, end, rate, period, vesting.target, true);
@@ -157,7 +159,7 @@ const vestingDelegatingTests = (params, lockupParams) => {
     const plan = await vesting.plans(2);
     expect(plan.amount).to.eq(claimB);
     expect(plan.token).to.eq(token.target);
-    expect(plan.start).to.eq(start);
+    expect(plan.start).to.eq(expectedStart);
     expect(plan.cliff).to.eq(cliff);
     expect(plan.period).to.eq(period);
     expect(plan.rate).to.eq(rate);
@@ -199,6 +201,7 @@ const vestingDelegatingTests = (params, lockupParams) => {
     expect(tx).to.emit(claimContract, 'TokensClaimed').withArgs(id, c.address, claimC, remainder);
     expect(tx).to.emit(token, 'Transfer').withArgs(claimContract.target, vesting.target, claimC);
     let rate = claimC % periods == 0 ? BigInt(claimC / periods) : BigInt(claimC / periods) + BigInt(1);
+    let expectedStart = lockupParams.start == 0 ? BigInt((await time.latest())) : start;
     expect(tx)
       .to.emit(vesting, 'PlanCreated')
       .withArgs(3, vesting.target, token.target, claimC, start, cliff, end, rate, period, vesting.target, true);
@@ -212,7 +215,7 @@ const vestingDelegatingTests = (params, lockupParams) => {
     const plan = await vesting.plans(3);
     expect(plan.amount).to.eq(claimC);
     expect(plan.token).to.eq(token.target);
-    expect(plan.start).to.eq(start);
+    expect(plan.start).to.eq(expectedStart);
     expect(plan.cliff).to.eq(cliff);
     expect(plan.period).to.eq(period);
     expect(plan.rate).to.eq(rate);
@@ -254,6 +257,7 @@ const vestingDelegatingTests = (params, lockupParams) => {
     expect(tx).to.emit(claimContract, 'TokensClaimed').withArgs(id, d.address, claimD, remainder);
     expect(tx).to.emit(token, 'Transfer').withArgs(claimContract.target, vesting.target, claimD);
     let rate = claimD % periods == 0 ? BigInt(claimD / periods) : BigInt(claimD / periods) + BigInt(1);
+    let expectedStart = lockupParams.start == 0 ? BigInt((await time.latest())) : start;
     expect(tx)
       .to.emit(vesting, 'PlanCreated')
       .withArgs(4, vesting.target, token.target, claimD, start, cliff, end, rate, period, vesting.target, true);
@@ -267,7 +271,7 @@ const vestingDelegatingTests = (params, lockupParams) => {
     const plan = await vesting.plans(4);
     expect(plan.amount).to.eq(claimD);
     expect(plan.token).to.eq(token.target);
-    expect(plan.start).to.eq(start);
+    expect(plan.start).to.eq(expectedStart);
     expect(plan.cliff).to.eq(cliff);
     expect(plan.period).to.eq(period);
     expect(plan.rate).to.eq(rate);
