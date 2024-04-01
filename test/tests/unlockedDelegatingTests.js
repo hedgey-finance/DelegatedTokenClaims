@@ -915,7 +915,7 @@ const unlockedDelegatingErrorTests = () => {
     };
     await expect(
       claimContract.connect(a).claimAndDelegate(id, proof, claimA, delegatee, delegationSig)
-    ).to.be.revertedWith('campaign not started');
+    ).to.be.revertedWith('!started');
   });
   it('will revert if creating a delegating campaign with a ERC20 that isnt ERC20Votes', async () => {
     let nvToken = deployed.nvToken;
@@ -963,6 +963,54 @@ const unlockedDelegatingErrorTests = () => {
     };
     await expect(claimContract.createUnlockedCampaign(id, campaign, BigInt(treevalues.length))).to.be.reverted;
   });
+  it('checks that if a claim is done on behalf of a user, that it cannot be done again on behalf of the same user with a different msg.sender', async () => {
+    const uuid = uuidv4();
+    id = uuidParse(uuid);
+    campaign.manager = dao.address;
+    campaign.token = token.target;
+    campaign.start = BigInt(await time.latest());
+    await claimContract.createUnlockedCampaign(id, campaign, 0);
+    let proof = getProof('./test/trees/tree.json', a.address);
+    let delegatee = a.address;
+    let expiry = BigInt(await time.latest()) + BigInt(60 * 60 * 24 * 7);
+    let signatureNonce = await claimContract.nonces(a.address);
+    let delegationNonce = await token.nonces(a.address);
+    const delegationValues = {
+      delegatee,
+      nonce: delegationNonce,
+      expiry,
+    };
+    const delegationSignature = await getSignature(a, tokenDomain, C.delegationtype, delegationValues);
+    const delegationSig = {
+      nonce: delegationNonce,
+      expiry,
+      v: delegationSignature.v,
+      r: delegationSignature.r,
+      s: delegationSignature.s,
+    };
+    const txValues = {
+      campaignId: id,
+      claimer: a.address,
+      claimAmount: claimA,
+      nonce: signatureNonce,
+      expiry,
+    };
+    const txSignature = await getSignature(a, claimDomain, C.claimType, txValues);
+    const txSig = {
+      nonce: signatureNonce,
+      expiry,
+      v: txSignature.v,
+      r: txSignature.r,
+      s: txSignature.s,
+    };
+    await claimContract
+      .connect(dao)
+      .claimAndDelegateWithSig(id, proof, a.address, claimA, txSig, delegatee, delegationSig);
+    expect(await claimContract.claimed(id, a.address)).to.eq(true);
+    await expect(
+      claimContract.connect(b).claimAndDelegateWithSig(id, proof, a.address, claimA, txSig, delegatee, delegationSig)
+    ).to.be.revertedWith('already claimed');
+  })
 };
 
 module.exports = {
