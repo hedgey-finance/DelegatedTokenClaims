@@ -2,6 +2,10 @@ const C = require('./constants');
 const { unlockedDelegatingTests, unlockedDelegatingErrorTests } = require('./tests/unlockedDelegatingTests');
 const { lockedDelegatingTests, lockedDelegatingErrorTests } = require('./tests/lockedDelegatingTests');
 const { vestingDelegatingTests, vestingDelegatingErrorTests } = require('./tests/vestingDelegatingTests');
+const { unlockedTests, unlockedErrorTests } = require('./tests/unlockedClaimTests');
+const { lockedTests, lockedErrorTests } = require('./tests/lockedClaimTests');
+const { vestingTests, vestingErrorTests } = require('./tests/vestingClaimTest');
+const { multiClaimTests } = require('./tests/multiClaimTests');
 
 
 const paramsMatrix = [
@@ -25,14 +29,14 @@ const lockupParamsMatrix = [
   }
 ]
 
-// describe('Testing the unlocked tests', () => {
+// describe('Testing the unlocked tests with delegation', () => {
 //   paramsMatrix.forEach((params) => {
 //     unlockedDelegatingTests(params);
 //   });
 //     unlockedDelegatingErrorTests();
 // });
 
-// describe('Testing the locked tests', () => {
+// describe('Testing the locked tests with delegation', () => {
 //   paramsMatrix.forEach((params) => {
 //     lockupParamsMatrix.forEach((lockupParams) => {
 //       lockedDelegatingTests(params, lockupParams);
@@ -41,11 +45,44 @@ const lockupParamsMatrix = [
 //   lockedDelegatingErrorTests();
 // });
 
-describe('Testing the vesting tests', () => {
-  // paramsMatrix.forEach((params) => {
-  //   lockupParamsMatrix.forEach((lockupParams) => {
-  //     vestingDelegatingTests(params, lockupParams);
-  //   });
-  // });
-  vestingDelegatingErrorTests();
-});
+// describe('Testing the vesting tests with delegation', () => {
+//   paramsMatrix.forEach((params) => {
+//     lockupParamsMatrix.forEach((lockupParams) => {
+//       vestingDelegatingTests(params, lockupParams);
+//     });
+//   });
+//   vestingDelegatingErrorTests();
+// });
+
+// describe('Testing the unlocked claim tests without delegation', () => {
+//   paramsMatrix.forEach((params) => {
+//     unlockedTests(params, true);
+//     unlockedTests(params, false);
+//   });
+  // unlockedErrorTests();
+// })
+
+describe('Testing the locked claim tests without delegation', () => {
+  paramsMatrix.forEach((params) => {
+    lockupParamsMatrix.forEach((lockupParams) => {
+      lockedTests(params, lockupParams, true);
+      lockedTests(params, lockupParams, false);
+    });
+  });
+  // lockedErrorTests();
+})
+
+describe('Testing the vesting claim tests without delegation', () => {
+  paramsMatrix.forEach((params) => {
+    lockupParamsMatrix.forEach((lockupParams) => {
+      vestingTests(params, lockupParams, true);
+      vestingTests(params, lockupParams, false);
+    });
+  });
+  // vestingErrorTests();
+})
+
+// describe('Testing the multi claim tests', () => {
+//   paramsMatrix.forEach((params) => {
+//     multiClaimTests(params);
+//   });

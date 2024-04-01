@@ -93,6 +93,7 @@ const unlockedDelegatingTests = (params) => {
     const tx = await claimContract.connect(a).claimAndDelegate(id, proof, claimA, delegatee, delegationSig);
     expect(await token.balanceOf(a.address)).to.eq(claimA);
     expect(await token.delegates(a.address)).to.eq(delegatee);
+    expect(await claimContract.claimed(id, a.address)).to.eq(true);
   });
   it('user B claims their own tokens and delegates to user C', async () => {
     let proof = getProof('./test/trees/tree.json', b.address);
