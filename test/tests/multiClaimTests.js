@@ -8,7 +8,7 @@ const { ethers } = require('hardhat');
 const { v4: uuidv4, parse: uuidParse } = require('uuid');
 
 const multiClaimTests = (params) => {
-  let deployed, dao, a, b, c, d, e, token, claimContract, lockup, vesting;
+  let deployed, dao, a, b, c, d, e, token, claimContract, lockup, vesting, claimDomain;
   let start, cliff, period, periods, end;
   let amount,
     root,
@@ -36,6 +36,7 @@ const multiClaimTests = (params) => {
     claimContract = deployed.claimContract;
     lockup = deployed.lockup;
     vesting = deployed.vesting;
+    claimDomain = deployed.claimDomain;
     await token.approve(claimContract.target, BigInt(10 ** params.decimals) * BigInt(1000000));
     let treevalues = [];
     amount = BigInt(0);
@@ -67,8 +68,8 @@ const multiClaimTests = (params) => {
     }
     root = createTree(treevalues, ['address', 'uint256']);
     let now = BigInt(await time.latest());
-    let start = now;
-    let end = BigInt(60 * 60 * 24 * 7) + now;
+    start = now;
+    end = BigInt(60 * 60 * 24 * 7) + now;
     campaign = {
       manager: dao.address,
       token: token.target,
@@ -150,6 +151,27 @@ const multiClaimTests = (params) => {
     ).to.be.revertedWith('already claimed');
     await claimContract.connect(a).claimMultiple([thirdId, fourthId], [proofA, proofA], [claimA, claimA]);
   });
+  it('user e is able to claim from all 4 campaigns with signature', async () => {
+    let proof = getProof('./test/trees/tree.json', e.address);
+    let nonce = await claimContract.nonces(e.address);
+    let expiry = BigInt(await time.latest()) + BigInt(60 * 60 * 24 * 7);
+    const signatureValues = {
+      campaignId: firstId,
+      claimer: e.address,
+      claimAmount: claimE,
+      nonce,
+      expiry,
+    };
+    const claimSignature = await getSignature(e, claimDomain, C.claimType, signatureValues);
+    const claimSig = {
+      nonce,
+      expiry,
+      v: claimSignature.v,
+      r: claimSignature.r,
+      s: claimSignature.s,
+    };
+    let tx = await claimContract.connect(a).claimMultipleWithSig([firstId, secondId, thirdId, fourthId], [proof, proof, proof, proof], e.address, [claimE, claimE, claimE, claimE], claimSig);
+  })
 };
 
 module.exports = {

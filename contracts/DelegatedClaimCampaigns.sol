@@ -213,7 +213,7 @@ contract DelegatedClaimCampaigns is ERC721Holder, ReentrancyGuard, EIP712, Nonce
     bytes16[] calldata campaignIds,
     bytes32[][] calldata proofs,
     uint256[] calldata claimAmounts
-  ) external nonReentrant {
+  ) public nonReentrant {
     require(campaignIds.length == proofs.length, 'length mismatch');
     require(campaignIds.length == claimAmounts.length, 'length mismatch');
     for (uint256 i = 0; i < campaignIds.length; i++) {
@@ -259,6 +259,38 @@ contract DelegatedClaimCampaigns is ERC721Holder, ReentrancyGuard, EIP712, Nonce
       _claimUnlockedTokens(campaignId, proof, claimer, claimAmount);
     } else {
       _claimLockedTokens(campaignId, proof, claimer, claimAmount);
+    }
+  }
+
+  function claimMultipleWithSig(
+    bytes16[] calldata campaignIds,
+    bytes32[][] calldata proofs,
+    address claimer,
+    uint256[] calldata claimAmounts,
+    SignatureParams memory claimSignature
+  ) external nonReentrant {
+    address signer = ECDSA.recover(
+      _hashTypedDataV4(
+        keccak256(
+          abi.encode(CLAIM_TYPEHASH, campaignIds[0], claimer, claimAmounts[0], claimSignature.nonce, claimSignature.expiry)
+        )
+      ),
+      claimSignature.v,
+      claimSignature.r,
+      claimSignature.s
+    );
+    require(signer == claimer, 'invalid claim signature');
+    _useCheckedNonce(claimer, claimSignature.nonce);
+    require(campaignIds.length == proofs.length, 'length mismatch');
+    require(campaignIds.length == claimAmounts.length, 'length mismatch');
+    for (uint256 i = 0; i < campaignIds.length; i++) {
+      require(!claimed[campaignIds[i]][claimer], 'already claimed');
+      require(!campaigns[campaignIds[i]].delegating, 'must delegate');
+      if (campaigns[campaignIds[i]].tokenLockup == TokenLockup.Unlocked) {
+        _claimUnlockedTokens(campaignIds[i], proofs[i], claimer, claimAmounts[i]);
+      } else {
+        _claimLockedTokens(campaignIds[i], proofs[i], claimer, claimAmounts[i]);
+      }
     }
   }
 
