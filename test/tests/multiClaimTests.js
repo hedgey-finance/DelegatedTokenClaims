@@ -155,23 +155,116 @@ const multiClaimTests = (params) => {
     let proof = getProof('./test/trees/tree.json', e.address);
     let nonce = await claimContract.nonces(e.address);
     let expiry = BigInt(await time.latest()) + BigInt(60 * 60 * 24 * 7);
-    const signatureValues = {
+    let signatureValues = {
       campaignId: firstId,
       claimer: e.address,
       claimAmount: claimE,
       nonce,
       expiry,
     };
-    const claimSignature = await getSignature(e, claimDomain, C.claimType, signatureValues);
-    const claimSig = {
+    let claimSignature = await getSignature(e, claimDomain, C.claimType, signatureValues);
+    let claimSig = {
       nonce,
       expiry,
       v: claimSignature.v,
       r: claimSignature.r,
       s: claimSignature.s,
     };
-    let tx = await claimContract.connect(a).claimMultipleWithSig([firstId, secondId, thirdId, fourthId], [proof, proof, proof, proof], e.address, [claimE, claimE, claimE, claimE], claimSig);
-  })
+    let tx = await claimContract
+      .connect(a)
+      .claimMultipleWithSig(
+        [firstId, secondId, thirdId, fourthId],
+        [proof, proof, proof, proof],
+        e.address,
+        [claimE, claimE, claimE, claimE],
+        claimSig
+      );
+    nonce = await claimContract.nonces(e.address);
+    signatureValues.nonce = nonce;
+    claimSignature = await getSignature(e, claimDomain, C.claimType, signatureValues);
+    claimSig = {
+      nonce,
+      expiry,
+      v: claimSignature.v,
+      r: claimSignature.r,
+      s: claimSignature.s,
+    };
+    await expect(
+      claimContract
+        .connect(a)
+        .claimMultipleWithSig(
+          [firstId, secondId, thirdId, fourthId],
+          [proof, proof, proof, proof],
+          e.address,
+          [claimE, claimE, claimE, claimE],
+          claimSig
+        )
+    ).to.be.revertedWith('already claimed');
+    nonce = await claimContract.nonces(e.address);
+    signatureValues.nonce = nonce;
+    claimSignature = await getSignature(e, claimDomain, C.claimType, signatureValues);
+    claimSig = {
+      nonce,
+      expiry,
+      v: claimSignature.v,
+      r: claimSignature.r,
+      s: claimSignature.s,
+    };
+    await expect(
+      claimContract
+        .connect(a)
+        .claimMultipleWithSig(
+          [firstId, secondId, thirdId],
+          [proof, proof, proof],
+          e.address,
+          [claimE, claimE, claimE],
+          claimSig
+        )
+    ).to.be.revertedWith('already claimed');
+    nonce = await claimContract.nonces(e.address);
+    signatureValues.nonce = nonce;
+    claimSignature = await getSignature(e, claimDomain, C.claimType, signatureValues);
+    claimSig = {
+      nonce,
+      expiry,
+      v: claimSignature.v,
+      r: claimSignature.r,
+      s: claimSignature.s,
+    };
+    await expect(
+      claimContract
+        .connect(a)
+        .claimMultipleWithSig([firstId, secondId], [proof, proof], e.address, [claimE, claimE], claimSig)
+    ).to.be.revertedWith('already claimed');
+    nonce = await claimContract.nonces(e.address);
+    signatureValues.nonce = nonce;
+    claimSignature = await getSignature(e, claimDomain, C.claimType, signatureValues);
+    claimSig = {
+      nonce,
+      expiry,
+      v: claimSignature.v,
+      r: claimSignature.r,
+      s: claimSignature.s,
+    };
+    await expect(
+      claimContract.connect(a).claimMultipleWithSig([firstId], [proof], e.address, [claimE], claimSig)
+    ).to.be.revertedWith('already claimed');
+    nonce = await claimContract.nonces(e.address);
+    signatureValues.nonce = nonce;
+    claimSignature = await getSignature(e, claimDomain, C.claimType, signatureValues);
+    claimSig = {
+      nonce,
+      expiry,
+      v: claimSignature.v,
+      r: claimSignature.r,
+      s: claimSignature.s,
+    };
+    await expect(
+      claimContract
+        .connect(a)
+        .claimMultipleWithSig([thirdId, secondId], [proof, proof], e.address, [claimE, claimE], claimSig)
+    ).to.be.revertedWith('invalid claim signature');
+  });
 };
 
 module.exports = {
