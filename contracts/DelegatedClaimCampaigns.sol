@@ -2,7 +2,6 @@
 pragma solidity 0.8.24;
 
 import './libraries/TransferHelper.sol';
-import './libraries/TimelockLibrary.sol';
 import './interfaces/IVestingPlans.sol';
 import './interfaces/ILockupPlans.sol';
 import './interfaces/IDelegatePlan.sol';
@@ -16,8 +15,6 @@ import '@openzeppelin/contracts/utils/cryptography/EIP712.sol';
 import '@openzeppelin/contracts/utils/cryptography/ECDSA.sol';
 import '@openzeppelin/contracts/utils/Nonces.sol';
 
-// import 'hardhat/console.sol';
-
 /// @title ClaimCampaigns - The smart contract to distribute your tokens to the community via claims
 /// @notice This tool allows token projects to safely, securely and efficiently distribute your tokens in large scale to your community, whereby they can claim them based on your criteria of wallet address and amount.
 
@@ -29,7 +26,7 @@ contract DelegatedClaimCampaigns is ERC721Holder, ReentrancyGuard, EIP712, Nonce
   /// @dev an enum defining the different types of claims to be made
   /// @param Unlocked means that tokens claimed are liquid and not locked at all
   /// @param Locked means that the tokens claimed will be locked inside a TokenLockups plan
-  /// @param Vesting means the tokens claimed will be locked insite a TokenVesting plan
+  /// @param Vesting means the tokens claimed will be locked inside a TokenVesting plan
   enum TokenLockup {
     Unlocked,
     Locked,
@@ -213,7 +210,7 @@ contract DelegatedClaimCampaigns is ERC721Holder, ReentrancyGuard, EIP712, Nonce
     bytes16[] calldata campaignIds,
     bytes32[][] calldata proofs,
     uint256[] calldata claimAmounts
-  ) public nonReentrant {
+  ) external nonReentrant {
     require(campaignIds.length == proofs.length, 'length mismatch');
     require(campaignIds.length == claimAmounts.length, 'length mismatch');
     for (uint256 i = 0; i < campaignIds.length; i++) {
