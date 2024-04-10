@@ -183,10 +183,11 @@ const vestingDelegatingTests = (params, lockupParams) => {
       campaignId: id,
       claimer: c.address,
       claimAmount: claimC,
+      delegatee,
       nonce,
       expiry,
     };
-    const txSignature = await getSignature(c, domain, C.claimType, txValues);
+    const txSignature = await getSignature(c, domain, C.delegatingClaimType, txValues);
     const txSig = {
       nonce,
       expiry,
@@ -239,10 +240,11 @@ const vestingDelegatingTests = (params, lockupParams) => {
       campaignId: id,
       claimer: d.address,
       claimAmount: claimD,
+      delegatee,
       nonce,
       expiry,
     };
-    const txSignature = await getSignature(d, domain, C.claimType, txValues);
+    const txSignature = await getSignature(d, domain, C.delegatingClaimType, txValues);
     const txSig = {
       nonce,
       expiry,
@@ -569,10 +571,11 @@ const vestingDelegatingErrorTests = () => {
       campaignId: firstId,
       claimer: c.address,
       claimAmount: claimB,
+      delegatee,
       nonce,
       expiry,
     };
-    const txSignature = await getSignature(b, domain, C.claimType, txValues);
+    const txSignature = await getSignature(b, domain, C.delegatingClaimType, txValues);
     const txSig = {
       nonce,
       expiry,

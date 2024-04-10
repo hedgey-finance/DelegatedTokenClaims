@@ -28,8 +28,10 @@ contract DelegatedClaimCampaigns is ERC721Holder, ReentrancyGuard, EIP712, Nonce
       'MultiClaim(bytes16 campaignId,address claimer,uint256 claimAmount,uint256 nonce,uint256 expiry,uint256 numberOfClaims)'
     );
 
-  bytes32 private constant DELEGATION_TYPEHASH =
-    keccak256('Delegation(address delegatee,uint256 nonce,uint256 expiry)');
+  bytes32 private constant DELEGATINGCLAIM_TYPEHASH =
+    keccak256(
+      'DelegatingClaim(bytes16 campaignId,address claimer,uint256 claimAmount,address delegatee,uint256 nonce,uint256 expiry)'
+    );
 
   /// @dev an enum defining the different types of claims to be made
   /// @param Unlocked means that tokens claimed are liquid and not locked at all
@@ -280,6 +282,7 @@ contract DelegatedClaimCampaigns is ERC721Holder, ReentrancyGuard, EIP712, Nonce
   ) external nonReentrant {
     require(campaignIds.length == proofs.length, 'length mismatch');
     require(campaignIds.length == claimAmounts.length, 'length mismatch');
+    require(claimSignature.expiry > block.timestamp, 'claim expired');
     address signer = ECDSA.recover(
       _hashTypedDataV4(
         keccak256(
@@ -369,7 +372,7 @@ contract DelegatedClaimCampaigns is ERC721Holder, ReentrancyGuard, EIP712, Nonce
     address signer = ECDSA.recover(
       _hashTypedDataV4(
         keccak256(
-          abi.encode(CLAIM_TYPEHASH, campaignId, claimer, claimAmount, claimSignature.nonce, claimSignature.expiry)
+          abi.encode(DELEGATINGCLAIM_TYPEHASH, campaignId, claimer, claimAmount, delegatee, claimSignature.nonce, claimSignature.expiry)
         )
       ),
       claimSignature.v,
@@ -392,13 +395,6 @@ contract DelegatedClaimCampaigns is ERC721Holder, ReentrancyGuard, EIP712, Nonce
         delegationSignature.s
       );
     } else {
-      address delgateeFromSig = ECDSA.recover(
-        _hashTypedDataV4(keccak256(abi.encode(DELEGATION_TYPEHASH, delegatee))),
-        delegationSignature.v,
-        delegationSignature.r,
-        delegationSignature.s
-      );
-      require(delgateeFromSig == delegatee, 'invalid delegation signature');
       _claimLockedAndDelegate(campaignId, proof, claimer, claimAmount, delegatee);
     }
   }

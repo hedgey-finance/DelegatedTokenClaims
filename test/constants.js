@@ -54,6 +54,17 @@ const multiClaimType = {
   ]
 }
 
+const delegatingClaimType = {
+  DelegatingClaim: [
+    { name: 'campaignId', type: 'bytes16' },
+    { name: 'claimer', type: 'address' },
+    { name: 'claimAmount', type: 'uint256' },
+    { name: 'delegatee', type: 'address' },
+    { name: 'nonce', type: 'uint256' },
+    { name: 'expiry', type: 'uint256' },
+  ]
+}
+
 // const planEnd = (start, amount, rate, period) => {
 //   const end =
 //     BigNumber.from(amount).mod(rate) == 0
@@ -91,4 +102,5 @@ module.exports = {
   delegationtype,
   claimType,
   multiClaimType,
+  delegatingClaimType,
 };

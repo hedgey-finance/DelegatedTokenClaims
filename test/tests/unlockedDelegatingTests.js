@@ -139,10 +139,11 @@ const unlockedDelegatingTests = (params) => {
       campaignId: id,
       claimer: c.address,
       claimAmount: claimC,
+      delegatee,
       nonce,
       expiry,
     };
-    const txSignature = await getSignature(c, claimDomain, C.claimType, txValues);
+    const txSignature = await getSignature(c, claimDomain, C.delegatingClaimType, txValues);
     const txSig = {
       nonce,
       expiry,
@@ -178,10 +179,11 @@ const unlockedDelegatingTests = (params) => {
       campaignId: id,
       claimer: d.address,
       claimAmount: claimD,
+      delegatee,
       nonce,
       expiry,
     };
-    const txSignature = await getSignature(d, claimDomain, C.claimType, txValues);
+    const txSignature = await getSignature(d, claimDomain, C.delegatingClaimType, txValues);
     const txSig = {
       nonce,
       expiry,
@@ -288,10 +290,11 @@ const unlockedDelegatingTests = (params) => {
       campaignId: id,
       claimer: b.address,
       claimAmount: claimB,
+      delegatee: delegateeB,
       nonce: txNonceB,
       expiry,
     };
-    const txSignatureB = await getSignature(b, claimDomain, C.claimType, txValuesB);
+    const txSignatureB = await getSignature(b, claimDomain, C.delegatingClaimType, txValuesB);
     const txSigB = {
       nonce: txNonceB,
       expiry,
@@ -700,10 +703,11 @@ const unlockedDelegatingErrorTests = () => {
       campaignId: id,
       claimer: b.address,
       claimAmount: claimB,
+      delegatee,
       nonce,
       expiry,
     };
-    let txSignature = await getSignature(a, claimDomain, C.claimType, txValues);
+    let txSignature = await getSignature(a, claimDomain, C.delegatingClaimType, txValues);
     let txSig = {
       nonce,
       expiry,
@@ -715,7 +719,7 @@ const unlockedDelegatingErrorTests = () => {
       claimContract.connect(dao).claimAndDelegateWithSig(id, proof, b.address, claimB, txSig, delegatee, delegationSig)
     ).to.be.revertedWith('invalid claim signature');
     txValues.nonce = 1;
-    txSignature = await getSignature(b, claimDomain, C.claimType, txValues);
+    txSignature = await getSignature(b, claimDomain, C.delegatingClaimType, txValues);
     txSig = {
       nonce,
       expiry,
@@ -728,7 +732,7 @@ const unlockedDelegatingErrorTests = () => {
     ).to.be.revertedWith('invalid claim signature');
     txValues.nonce = 0;
     txValues.expiry = 0;
-    txSignature = await getSignature(b, claimDomain, C.claimType, txValues);
+    txSignature = await getSignature(b, claimDomain, C.delegatingClaimType, txValues);
     txSig = {
       nonce,
       expiry,
@@ -741,7 +745,7 @@ const unlockedDelegatingErrorTests = () => {
     ).to.be.revertedWith('invalid claim signature');
     txValues.expiry = expiry;
     txValues.campaignId = firstId;
-    txSignature = await getSignature(b, claimDomain, C.claimType, txValues);
+    txSignature = await getSignature(b, claimDomain, C.delegatingClaimType, txValues);
     txSig = {
       nonce,
       expiry,
@@ -754,7 +758,7 @@ const unlockedDelegatingErrorTests = () => {
     ).to.be.revertedWith('invalid claim signature');
     txValues.campaignId = id;
     txValues.claimer = a.address;
-    txSignature = await getSignature(b, claimDomain, C.claimType, txValues);
+    txSignature = await getSignature(b, claimDomain, C.delegatingClaimType, txValues);
     txSig = {
       nonce,
       expiry,
@@ -767,7 +771,7 @@ const unlockedDelegatingErrorTests = () => {
     ).to.be.revertedWith('invalid claim signature');
     txValues.claimer = b.address;
     txValues.claimAmount = claimB + BigInt(1);
-    txSignature = await getSignature(b, claimDomain, C.claimType, txValues);
+    txSignature = await getSignature(b, claimDomain, C.delegatingClaimType, txValues);
     txSig = {
       nonce,
       expiry,
@@ -779,7 +783,7 @@ const unlockedDelegatingErrorTests = () => {
       claimContract.connect(dao).claimAndDelegateWithSig(id, proof, b.address, claimB, txSig, delegatee, delegationSig)
     ).to.be.revertedWith('invalid claim signature');
     txValues.claimAmount = claimB;
-    txSignature = await getSignature(b, tokenDomain, C.claimType, txValues);
+    txSignature = await getSignature(b, tokenDomain, C.delegatingClaimType, txValues);
     txSig = {
       nonce,
       expiry,
@@ -790,7 +794,7 @@ const unlockedDelegatingErrorTests = () => {
     await expect(
       claimContract.connect(dao).claimAndDelegateWithSig(id, proof, b.address, claimB, txSig, delegatee, delegationSig)
     ).to.be.revertedWith('invalid claim signature');
-    txSignature = await getSignature(b, claimDomain, C.claimType, txValues);
+    txSignature = await getSignature(b, claimDomain, C.delegatingClaimType, txValues);
     txSig = {
       nonce,
       expiry,
@@ -992,10 +996,11 @@ const unlockedDelegatingErrorTests = () => {
       campaignId: id,
       claimer: a.address,
       claimAmount: claimA,
+      delegatee,
       nonce: signatureNonce,
       expiry,
     };
-    const txSignature = await getSignature(a, claimDomain, C.claimType, txValues);
+    const txSignature = await getSignature(a, claimDomain, C.delegatingClaimType, txValues);
     const txSig = {
       nonce: signatureNonce,
       expiry,
