@@ -23,6 +23,11 @@ contract DelegatedClaimCampaigns is ERC721Holder, ReentrancyGuard, EIP712, Nonce
   bytes32 private constant CLAIM_TYPEHASH =
     keccak256('Claim(bytes16 campaignId,address claimer,uint256 claimAmount,uint256 nonce,uint256 expiry)');
 
+  bytes32 private constant MULITCLAIM_TYPEHASH =
+    keccak256(
+      'MultiClaim(bytes16 campaignId,address claimer,uint256 claimAmount,uint256 nonce,uint256 expiry,uint256 numberOfClaims)'
+    );
+
   /// @dev an enum defining the different types of claims to be made
   /// @param Unlocked means that tokens claimed are liquid and not locked at all
   /// @param Locked means that the tokens claimed will be locked inside a TokenLockups plan
@@ -70,8 +75,7 @@ contract DelegatedClaimCampaigns is ERC721Holder, ReentrancyGuard, EIP712, Nonce
     bool delegating;
   }
 
-
-  /// @dev this is for the EIP712 signatures used for claiming tokens on behalf of users 
+  /// @dev this is for the EIP712 signatures used for claiming tokens on behalf of users
   /// @param nonce is the nonce of the claimer, which is used to prevent replay attacks
   /// @param expiry is the expiry time of the claim, which is used to prevent replay attacks
   /// @param v is the v value of the signature
@@ -102,7 +106,12 @@ contract DelegatedClaimCampaigns is ERC721Holder, ReentrancyGuard, EIP712, Nonce
   event CampaignStarted(bytes16 indexed id, Campaign campaign, uint256 totalClaimers);
   event ClaimLockupCreated(bytes16 indexed id, ClaimLockup claimLockup);
   event CampaignCancelled(bytes16 indexed id);
-  event LockedTokensClaimed(bytes16 indexed id, address indexed claimer, uint256 amountClaimed, uint256 amountRemaining);
+  event LockedTokensClaimed(
+    bytes16 indexed id,
+    address indexed claimer,
+    uint256 amountClaimed,
+    uint256 amountRemaining
+  );
   event UnlockedTokensClaimed(
     bytes16 indexed id,
     address indexed claimer,
@@ -266,10 +275,20 @@ contract DelegatedClaimCampaigns is ERC721Holder, ReentrancyGuard, EIP712, Nonce
     uint256[] calldata claimAmounts,
     SignatureParams memory claimSignature
   ) external nonReentrant {
+    require(campaignIds.length == proofs.length, 'length mismatch');
+    require(campaignIds.length == claimAmounts.length, 'length mismatch');
     address signer = ECDSA.recover(
       _hashTypedDataV4(
         keccak256(
-          abi.encode(CLAIM_TYPEHASH, campaignIds[0], claimer, claimAmounts[0], claimSignature.nonce, claimSignature.expiry)
+          abi.encode(
+            MULITCLAIM_TYPEHASH,
+            campaignIds[0],
+            claimer,
+            claimAmounts[0],
+            claimSignature.nonce,
+            claimSignature.expiry,
+            campaignIds.length
+          )
         )
       ),
       claimSignature.v,
@@ -278,8 +297,6 @@ contract DelegatedClaimCampaigns is ERC721Holder, ReentrancyGuard, EIP712, Nonce
     );
     require(signer == claimer, 'invalid claim signature');
     _useCheckedNonce(claimer, claimSignature.nonce);
-    require(campaignIds.length == proofs.length, 'length mismatch');
-    require(campaignIds.length == claimAmounts.length, 'length mismatch');
     for (uint256 i = 0; i < campaignIds.length; i++) {
       require(!claimed[campaignIds[i]][claimer], 'already claimed');
       require(!campaigns[campaignIds[i]].delegating, 'must delegate');

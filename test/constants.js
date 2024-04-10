@@ -43,6 +43,17 @@ const claimType = {
   ],
 };
 
+const multiClaimType = {
+  MultiClaim: [
+    { name: 'campaignId', type: 'bytes16' },
+    { name: 'claimer', type: 'address' },
+    { name: 'claimAmount', type: 'uint256' },
+    { name: 'nonce', type: 'uint256' },
+    { name: 'expiry', type: 'uint256' },
+    { name: 'numberOfClaims', type: 'uint256' },
+  ]
+}
+
 // const planEnd = (start, amount, rate, period) => {
 //   const end =
 //     BigNumber.from(amount).mod(rate) == 0
@@ -79,4 +90,5 @@ module.exports = {
   getVal,
   delegationtype,
   claimType,
+  multiClaimType,
 };

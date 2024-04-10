@@ -161,8 +161,9 @@ const multiClaimTests = (params) => {
       claimAmount: claimE,
       nonce,
       expiry,
+      numberOfClaims: 4,
     };
-    let claimSignature = await getSignature(e, claimDomain, C.claimType, signatureValues);
+    let claimSignature = await getSignature(e, claimDomain, C.multiClaimType, signatureValues);
     let claimSig = {
       nonce,
       expiry,
@@ -181,7 +182,7 @@ const multiClaimTests = (params) => {
       );
     nonce = await claimContract.nonces(e.address);
     signatureValues.nonce = nonce;
-    claimSignature = await getSignature(e, claimDomain, C.claimType, signatureValues);
+    claimSignature = await getSignature(e, claimDomain, C.multiClaimType, signatureValues);
     claimSig = {
       nonce,
       expiry,
@@ -202,7 +203,8 @@ const multiClaimTests = (params) => {
     ).to.be.revertedWith('already claimed');
     nonce = await claimContract.nonces(e.address);
     signatureValues.nonce = nonce;
-    claimSignature = await getSignature(e, claimDomain, C.claimType, signatureValues);
+    signatureValues.numberOfClaims = 3;
+    claimSignature = await getSignature(e, claimDomain, C.multiClaimType, signatureValues);
     claimSig = {
       nonce,
       expiry,
@@ -223,7 +225,8 @@ const multiClaimTests = (params) => {
     ).to.be.revertedWith('already claimed');
     nonce = await claimContract.nonces(e.address);
     signatureValues.nonce = nonce;
-    claimSignature = await getSignature(e, claimDomain, C.claimType, signatureValues);
+    signatureValues.numberOfClaims = 2;
+    claimSignature = await getSignature(e, claimDomain, C.multiClaimType, signatureValues);
     claimSig = {
       nonce,
       expiry,
@@ -238,7 +241,8 @@ const multiClaimTests = (params) => {
     ).to.be.revertedWith('already claimed');
     nonce = await claimContract.nonces(e.address);
     signatureValues.nonce = nonce;
-    claimSignature = await getSignature(e, claimDomain, C.claimType, signatureValues);
+    signatureValues.numberOfClaims = 1;
+    claimSignature = await getSignature(e, claimDomain, C.multiClaimType, signatureValues);
     claimSig = {
       nonce,
       expiry,
@@ -251,7 +255,8 @@ const multiClaimTests = (params) => {
     ).to.be.revertedWith('already claimed');
     nonce = await claimContract.nonces(e.address);
     signatureValues.nonce = nonce;
-    claimSignature = await getSignature(e, claimDomain, C.claimType, signatureValues);
+    signatureValues.numberOfClaims = 2;
+    claimSignature = await getSignature(e, claimDomain, C.multiClaimType, signatureValues);
     claimSig = {
       nonce,
       expiry,
