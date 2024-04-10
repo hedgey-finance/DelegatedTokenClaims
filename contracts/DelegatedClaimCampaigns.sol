@@ -28,6 +28,9 @@ contract DelegatedClaimCampaigns is ERC721Holder, ReentrancyGuard, EIP712, Nonce
       'MultiClaim(bytes16 campaignId,address claimer,uint256 claimAmount,uint256 nonce,uint256 expiry,uint256 numberOfClaims)'
     );
 
+  bytes32 private constant DELEGATION_TYPEHASH =
+    keccak256('Delegation(address delegatee,uint256 nonce,uint256 expiry)');
+
   /// @dev an enum defining the different types of claims to be made
   /// @param Unlocked means that tokens claimed are liquid and not locked at all
   /// @param Locked means that the tokens claimed will be locked inside a TokenLockups plan
@@ -389,6 +392,13 @@ contract DelegatedClaimCampaigns is ERC721Holder, ReentrancyGuard, EIP712, Nonce
         delegationSignature.s
       );
     } else {
+      address delgateeFromSig = ECDSA.recover(
+        _hashTypedDataV4(keccak256(abi.encode(DELEGATION_TYPEHASH, delegatee))),
+        delegationSignature.v,
+        delegationSignature.r,
+        delegationSignature.s
+      );
+      require(delgateeFromSig == delegatee, 'invalid delegation signature');
       _claimLockedAndDelegate(campaignId, proof, claimer, claimAmount, delegatee);
     }
   }
