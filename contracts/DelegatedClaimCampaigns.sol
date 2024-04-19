@@ -182,7 +182,7 @@ contract DelegatedClaimCampaigns is ERC721Holder, ReentrancyGuard, EIP712, Nonce
     require(claimLockup.tokenLocker != address(0), 'invalide locker');
     TransferHelper.transferTokens(campaign.token, msg.sender, address(this), campaign.amount);
     claimLockups[id] = claimLockup;
-    SafeERC20.safeIncreaseAllowance(IERC20(campaign.token), claimLockup.tokenLocker, campaign.amount);
+    
     campaigns[id] = campaign;
     emit ClaimLockupCreated(id, claimLockup);
     emit CampaignStarted(id, campaign, totalClaimers);
@@ -505,6 +505,7 @@ contract DelegatedClaimCampaigns is ERC721Holder, ReentrancyGuard, EIP712, Nonce
     }
     uint256 start = c.start == 0 ? block.timestamp : c.start;
     uint256 tokenId;
+    SafeERC20.safeIncreaseAllowance(IERC20(campaign.token), c.tokenLocker, claimAmount);
     if (campaign.tokenLockup == TokenLockup.Locked) {
       tokenId = ILockupPlans(c.tokenLocker).createPlan(
         claimer,
@@ -574,6 +575,7 @@ contract DelegatedClaimCampaigns is ERC721Holder, ReentrancyGuard, EIP712, Nonce
     }
     uint256 start = c.start == 0 ? block.timestamp : c.start;
     uint256 tokenId;
+    SafeERC20.safeIncreaseAllowance(IERC20(campaign.token), c.tokenLocker, claimAmount);
     if (campaign.tokenLockup == TokenLockup.Locked) {
       tokenId = ILockupPlans(c.tokenLocker).createPlan(
         address(this),
