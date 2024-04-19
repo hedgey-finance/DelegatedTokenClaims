@@ -33,6 +33,8 @@ contract DelegatedClaimCampaigns is ERC721Holder, ReentrancyGuard, EIP712, Nonce
       'DelegatingClaim(bytes16 campaignId,address claimer,uint256 claimAmount,address delegatee,uint256 nonce,uint256 expiry)'
     );
 
+  mapping(address => bool) public tokenLockers;
+
   /// @dev an enum defining the different types of claims to be made
   /// @param Unlocked means that tokens claimed are liquid and not locked at all
   /// @param Locked means that the tokens claimed will be locked inside a TokenLockups plan
@@ -126,7 +128,11 @@ contract DelegatedClaimCampaigns is ERC721Holder, ReentrancyGuard, EIP712, Nonce
   event Claimed(address indexed recipient, uint256 indexed amount);
 
   /// @notice the constructor of the contract, which sets the name and version of the EIP712 contract
-  constructor(string memory name, string memory version) EIP712(name, version) {}
+  constructor(string memory name, string memory version, address[] memory _tokenLockups) EIP712(name, version) {
+    for (uint256 i = 0; i < _tokenLockups.length; i++) {
+      tokenLockers[_tokenLockups[i]] = true;
+    }
+  }
 
   /**********EXTERNAL CREATE& CANCEL CLAIMS FUNCTIONS********************************************************************************************/
 
@@ -172,6 +178,7 @@ contract DelegatedClaimCampaigns is ERC721Holder, ReentrancyGuard, EIP712, Nonce
     require(campaign.amount > 0, '0_amount');
     require(campaign.end > block.timestamp && campaign.end > campaign.start, 'end error');
     require(campaign.tokenLockup != TokenLockup.Unlocked, '!locked');
+    require(tokenLockers[claimLockup.tokenLocker], 'invalid locker');
     if (campaign.delegating) {
       require(IERC20Votes(campaign.token).delegates(address(this)) == address(0), '!erc20votes');
     }
@@ -182,21 +189,22 @@ contract DelegatedClaimCampaigns is ERC721Holder, ReentrancyGuard, EIP712, Nonce
     require(claimLockup.tokenLocker != address(0), 'invalide locker');
     TransferHelper.transferTokens(campaign.token, msg.sender, address(this), campaign.amount);
     claimLockups[id] = claimLockup;
-    
     campaigns[id] = campaign;
     emit ClaimLockupCreated(id, claimLockup);
     emit CampaignStarted(id, campaign, totalClaimers);
   }
 
   /// @notice this function allows the campaign manager to cancel an ongoing campaign at anytime. Cancelling a campaign will return any unclaimed tokens, and then prevent anyone from claiming additional tokens
-  /// @param campaignId is the id of the campaign to be cancelled
-  function cancelCampaign(bytes16 campaignId) external nonReentrant {
-    Campaign memory campaign = campaigns[campaignId];
-    require(campaign.manager == msg.sender, '!manager');
-    delete campaigns[campaignId];
-    delete claimLockups[campaignId];
-    TransferHelper.withdrawTokens(campaign.token, msg.sender, campaign.amount);
-    emit CampaignCancelled(campaignId);
+  /// @param campaignIds is the id of the campaign to be cancelled
+  function cancelCampaigns(bytes16[] memory campaignIds) external nonReentrant {
+    for (uint256 i = 0; i < campaignIds.length; i++) {
+      Campaign memory campaign = campaigns[campaignIds[i]];
+      require(campaign.manager == msg.sender, '!manager');
+      delete campaigns[campaignIds[i]];
+      delete claimLockups[campaignIds[i]];
+      TransferHelper.withdrawTokens(campaign.token, msg.sender, campaign.amount);
+      emit CampaignCancelled(campaignIds[i]);
+    }
   }
 
   /***************EXTERNAL CLAIMING FUNCTIONS***************************************************************************************************/
@@ -372,7 +380,15 @@ contract DelegatedClaimCampaigns is ERC721Holder, ReentrancyGuard, EIP712, Nonce
     address signer = ECDSA.recover(
       _hashTypedDataV4(
         keccak256(
-          abi.encode(DELEGATINGCLAIM_TYPEHASH, campaignId, claimer, claimAmount, delegatee, claimSignature.nonce, claimSignature.expiry)
+          abi.encode(
+            DELEGATINGCLAIM_TYPEHASH,
+            campaignId,
+            claimer,
+            claimAmount,
+            delegatee,
+            claimSignature.nonce,
+            claimSignature.expiry
+          )
         )
       ),
       claimSignature.v,
