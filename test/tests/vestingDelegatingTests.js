@@ -127,6 +127,7 @@ const vestingDelegatingTests = (params, lockupParams) => {
     expect(plan.period).to.eq(period);
     expect(plan.rate).to.eq(rate);
     expect(plan.vestingAdmin).to.eq(vestingAdmin);
+    expect(await token.allowance(claimContract.target, vesting.target)).to.eq(0);
   });
   it('wallet B claims and delegates its tokens to wallet A', async () => {
     remainder = remainder - BigInt(claimB);
@@ -164,6 +165,7 @@ const vestingDelegatingTests = (params, lockupParams) => {
     expect(plan.period).to.eq(period);
     expect(plan.rate).to.eq(rate);
     expect(plan.vestingAdmin).to.eq(vestingAdmin);
+    expect(await token.allowance(claimContract.target, vesting.target)).to.eq(0);
   });
   it('DAO claims on behalf of wallet C and delegates to wallet C', async () => {
     remainder = remainder - BigInt(claimC);
@@ -221,6 +223,7 @@ const vestingDelegatingTests = (params, lockupParams) => {
     expect(plan.period).to.eq(period);
     expect(plan.rate).to.eq(rate);
     expect(plan.vestingAdmin).to.eq(vestingAdmin);
+    expect(await token.allowance(claimContract.target, vesting.target)).to.eq(0);
   });
   it('DAO claims on behalf of wallet D and delegates to wallet A', async () => {
     remainder = remainder - BigInt(claimD);
@@ -278,6 +281,7 @@ const vestingDelegatingTests = (params, lockupParams) => {
     expect(plan.period).to.eq(period);
     expect(plan.rate).to.eq(rate);
     expect(plan.vestingAdmin).to.eq(vestingAdmin);
+    expect(await token.allowance(claimContract.target, vesting.target)).to.eq(0);
   });
 };
 
@@ -404,7 +408,7 @@ const vestingDelegatingErrorTests = () => {
   });
   it('will revert if a non-manager tries to cancel', async () => {
     campaign.tokenLockup = 1;
-    await expect(claimContract.connect(a).cancelCampaign(id)).to.be.revertedWith('!manager');
+    await expect(claimContract.connect(a).cancelCampaigns([id])).to.be.revertedWith('!manager');
   });
   it('user cannot claim if the campaign has not started', async () => {
     campaign.start = BigInt(await time.latest()) + BigInt(1000);
@@ -452,7 +456,7 @@ const vestingDelegatingErrorTests = () => {
     const uuid = uuidv4();
     id = uuidParse(uuid);
     await claimContract.createLockedCampaign(id, campaign, claimLockup, dao.address, 0);
-    await claimContract.connect(dao).cancelCampaign(id);
+    await claimContract.connect(dao).cancelCampaigns([id]);
     let proof = getProof('./test/trees/tree.json', a.address);
     const bytes = ethers.encodeBytes32String('blank');
     const delegationSig = {

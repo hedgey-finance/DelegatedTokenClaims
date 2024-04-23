@@ -159,7 +159,7 @@ const unlockedTests = (params, delegating) => {
   });
   it('DAO cancels a claim and tokens are returned back to it, and no one can claim from it after', async () => {
     let campaignDetails = await claimContract.campaigns(id);
-    let tx = await claimContract.cancelCampaign(id);
+    let tx = await claimContract.cancelCampaigns([id]);
     expect(tx).to.emit(token, 'Transfer').withArgs(claimContract.target, dao.address, campaignDetails.amount);
     let proof = getProof('./test/trees/tree.json', b.address);
     await expect(claimContract.connect(b).claim(id, proof, claimB)).to.be.revertedWith('campaign ended');
@@ -377,7 +377,7 @@ const unlockedErrorTests = () => {
     );
   });
   it('cannot cancel the claim if it is not the manager', async () => {
-    await expect(claimContract.connect(a).cancelCampaign(id)).to.be.revertedWith('!manager');
+    await expect(claimContract.connect(a).cancelCampaigns([id])).to.be.revertedWith('!manager');
   });
   it('claim will revert using a non voting token and trying to claim from the claimAndDelegate function', async () => {
     campaign.token = nvToken.target;

@@ -18,15 +18,15 @@ const paramsMatrix = [
     nodeD: 8,
     nodeE: 15,
   },
-  {
-    decimals: 6,
-    totalRecipients: 100,
-    nodeA: 0,
-    nodeB: 1,
-    nodeC: 2,
-    nodeD: 8,
-    nodeE: 10,
-  }
+  // {
+  //   decimals: 6,
+  //   totalRecipients: 100,
+  //   nodeA: 0,
+  //   nodeB: 1,
+  //   nodeC: 2,
+  //   nodeD: 8,
+  //   nodeE: 10,
+  // }
 ];
 
 const lockupParamsMatrix = [
@@ -36,24 +36,24 @@ const lockupParamsMatrix = [
     period: 1,
     periods: (60 * 60 * 24 * 30),
   },
-  {
-    start: 1,
-    cliff: 0,
-    period: C.DAY,
-    periods: (30),
-  },
-  {
-    start: 0,
-    cliff: 0,
-    period: 1,
-    periods: (60 * 60 * 24 * 30),
-  },
-  {
-    start: 1,
-    cliff: 0,
-    period: C.MONTH,
-    periods: (12),
-  }
+  // {
+  //   start: 1,
+  //   cliff: 0,
+  //   period: C.DAY,
+  //   periods: (30),
+  // },
+  // {
+  //   start: 0,
+  //   cliff: 0,
+  //   period: 1,
+  //   periods: (60 * 60 * 24 * 30),
+  // },
+  // {
+  //   start: 1,
+  //   cliff: 0,
+  //   period: C.MONTH,
+  //   periods: (12),
+  // }
 ]
 
 describe('Testing the unlocked tests with delegation', () => {

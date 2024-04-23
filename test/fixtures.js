@@ -20,7 +20,7 @@ module.exports = async (tokenDecimals) => {
     await nvToken.waitForDeployment();
     const claimName = 'DelegatedClaimCampaigns'
     const version = '1';
-    const claimContract = await ClaimContract.deploy(claimName, version);
+    const claimContract = await ClaimContract.deploy(claimName, version, [lockup.target, vesting.target]);
     await claimContract.waitForDeployment();
     await token.approve(claimContract.target, supply);
     const tokenDomain = {

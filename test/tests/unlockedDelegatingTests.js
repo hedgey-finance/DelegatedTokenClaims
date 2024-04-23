@@ -313,7 +313,7 @@ const unlockedDelegatingTests = (params) => {
   it('DAO cancels campgain and unclaimed tokens are returned', async () => {
     expect(await claimContract.usedIds(id)).to.eq(true);
     const remainder = (await claimContract.campaigns(id)).amount;
-    const tx = await claimContract.connect(dao).cancelCampaign(id);
+    const tx = await claimContract.connect(dao).cancelCampaigns([id]);
     expect(tx).to.emit(claimContract, 'CampaignCancelled').withArgs(id);
     expect(tx).to.emit(token, 'Transfer').withArgs(claimContract.target, dao.address, remainder);
   });
@@ -417,10 +417,10 @@ const unlockedDelegatingErrorTests = () => {
     campaign.tokenLockup = 0;
   });
   it('Not the manager cannot cancel a claim', async () => {
-    await expect(claimContract.connect(a).cancelCampaign(firstId)).to.be.revertedWith('!manager');
+    await expect(claimContract.connect(a).cancelCampaigns([firstId])).to.be.revertedWith('!manager');
   });
   it('User cannot claim if the campaign has been cancelled', async () => {
-    await claimContract.connect(e).cancelCampaign(firstId);
+    await claimContract.connect(e).cancelCampaigns([firstId]);
     let proof = getProof('./test/trees/tree.json', a.address);
     let delegatee = a.address;
     let expiry = BigInt(await time.latest()) + BigInt(60 * 60 * 24 * 7);

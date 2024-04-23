@@ -101,6 +101,7 @@ const lockedTests = (params, lockupParams, delegating) => {
     expect(lockDetails.cliff).to.eq(cliff);
     expect(lockDetails.period).to.eq(period);
     expect(lockDetails.token).to.eq(token.target);
+    expect(await token.allowance(claimContract.target, lockup.target)).to.eq(0);
   });
   it('wallet B claims tokens and delegates if the token is ERC20votes', async () => {
     let proof = getProof('./test/trees/tree.json', b.address);
@@ -118,6 +119,7 @@ const lockedTests = (params, lockupParams, delegating) => {
     } else {
       tx = await claimContract.connect(b).claim(id, proof, claimB);
     }
+    expect(await token.allowance(claimContract.target, lockup.target)).to.eq(0);
   });
   it('dao claims on behalf of wallet c', async () => {
     let proof = getProof('./test/trees/tree.json', c.address);
@@ -139,6 +141,7 @@ const lockedTests = (params, lockupParams, delegating) => {
       s: claimSignature.s,
     };
     let tx = await claimContract.connect(dao).claimWithSig(id, proof, c.address, claimC, claimSig);
+    expect(await token.allowance(claimContract.target, lockup.target)).to.eq(0);
   });
   it('DAO creates another claim campaign with a future start date, and claimer can only claim after the start date', async () => {
     let now = BigInt(await time.latest());
@@ -151,14 +154,16 @@ const lockedTests = (params, lockupParams, delegating) => {
     await expect(claimContract.connect(d).claim(id, proof, claimD)).to.be.revertedWith('!started');
     await time.increaseTo(start);
     let tx = await claimContract.connect(d).claim(id, proof, claimD);
+    expect(await token.allowance(claimContract.target, lockup.target)).to.eq(0);
   });
   it('DAO cancels a claim and tokens are returned back to it, and no one can claim from it after', async () => {
     let campaignDetails = await claimContract.campaigns(id);
     let remainder = campaignDetails.amount;
-    let tx = await claimContract.connect(dao).cancelCampaign(id);
+    let tx = await claimContract.connect(dao).cancelCampaigns([id]);
     expect(tx).to.emit(token, 'Transfer').withArgs(claimContract.target, dao.target, remainder);
     let proof = getProof('./test/trees/tree.json', e.address);
     await expect(claimContract.connect(e).claim(id, proof, claimE)).to.be.revertedWith('campaign ended');
+    expect(await token.allowance(claimContract.target, lockup.target)).to.eq(0);
   });
 };
 
@@ -282,7 +287,7 @@ const lockedErrorTests = () => {
   });
   it('will revert if a non-manager tries to cancel', async () => {
     campaign.tokenLockup = 1;
-    await expect(claimContract.connect(a).cancelCampaign(id)).to.be.revertedWith('!manager');
+    await expect(claimContract.connect(a).cancelCampaigns([id])).to.be.revertedWith('!manager');
   });
   it('user cannot claim if the campaign has not started', async () => {
     campaign.start = BigInt(await time.latest()) + BigInt(1000);
@@ -332,7 +337,7 @@ const lockedErrorTests = () => {
     const uuid = uuidv4();
     id = uuidParse(uuid);
     await claimContract.createLockedCampaign(id, campaign, claimLockup, C.ZERO_ADDRESS, 0);
-    await claimContract.connect(dao).cancelCampaign(id);
+    await claimContract.connect(dao).cancelCampaigns([id]);
     let proof = getProof('./test/trees/tree.json', a.address);
     const bytes = ethers.encodeBytes32String('blank');
     const delegationSig = {
@@ -481,6 +486,12 @@ const lockedErrorTests = () => {
         .connect(dao)
         .claimAndDelegateWithSig(firstId, proof, b.address, claimB, txSig, delegatee, delegationSig)
     ).to.be.revertedWith('invalid claim signature');
+  });
+  it('should revert when inputting a malicious address into the token lockup param', async () => {
+
+  });
+  it('should not increase any allowance on create', async () => {
+
   });
 };
 
