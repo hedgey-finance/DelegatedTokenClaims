@@ -200,6 +200,7 @@ contract DelegatedClaimCampaigns is ERC721Holder, ReentrancyGuard, EIP712, Nonce
     for (uint256 i = 0; i < campaignIds.length; i++) {
       Campaign memory campaign = campaigns[campaignIds[i]];
       require(campaign.manager == msg.sender, '!manager');
+      require((IERC20(campaign.token).allowance(address(this), claimLockups[campaignIds[i]].tokenLocker)) == 0, 'allowance error');
       delete campaigns[campaignIds[i]];
       delete claimLockups[campaignIds[i]];
       TransferHelper.withdrawTokens(campaign.token, msg.sender, campaign.amount);
@@ -545,6 +546,7 @@ contract DelegatedClaimCampaigns is ERC721Holder, ReentrancyGuard, EIP712, Nonce
         true
       );
     }
+    require((IERC20(campaign.token).allowance(address(this), c.tokenLocker)) == 0, 'allowance error');
     emit LockedTokensClaimed(campaignId, claimer, claimAmount, campaigns[campaignId].amount);
   }
 
@@ -620,6 +622,7 @@ contract DelegatedClaimCampaigns is ERC721Holder, ReentrancyGuard, EIP712, Nonce
       IERC721(c.tokenLocker).transferFrom(address(this), claimer, tokenId);
       IVestingPlans(c.tokenLocker).changeVestingPlanAdmin(tokenId, _vestingAdmins[campaignId]);
     }
+    require((IERC20(campaign.token).allowance(address(this), c.tokenLocker)) == 0, 'allowance error');
     emit Claimed(claimer, claimAmount);
     emit LockedTokensClaimed(campaignId, claimer, claimAmount, campaigns[campaignId].amount);
   }
