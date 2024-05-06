@@ -488,10 +488,33 @@ const lockedErrorTests = () => {
     ).to.be.revertedWith('invalid claim signature');
   });
   it('should revert when inputting a malicious address into the token lockup param', async () => {
-
+    campaign = {
+      manager: dao.address,
+      token: token.target,
+      amount,
+      start: BigInt((await time.latest())),
+      end: BigInt((await time.latest()) + 60 * 60),
+      tokenLockup: 1,
+      root,
+      delegating: false,
+    };
+    claimLockup = {
+      tokenLocker: token.target,
+      start,
+      cliff,
+      period,
+      periods,
+    };
+    const uuid = uuidv4();
+    id = uuidParse(uuid);
+    await expect(claimContract.createLockedCampaign(id, campaign, claimLockup, C.ZERO_ADDRESS, 10)).to.be.revertedWith(
+      'invalid locker'
+    );
   });
   it('should not increase any allowance on create', async () => {
-
+    claimLockup.tokenLocker = lockup.target;
+    await claimContract.createLockedCampaign(id, campaign, claimLockup, C.ZERO_ADDRESS, 10);
+    expect(await token.allowance(claimContract.target, lockup.target)).to.eq(0);
   });
 };
 
