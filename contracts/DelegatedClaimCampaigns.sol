@@ -103,6 +103,8 @@ contract DelegatedClaimCampaigns is ERC721Holder, ReentrancyGuard, EIP712, Nonce
   /// @dev this maps the UUID that have already been used, so that a campaign cannot be duplicated
   mapping(bytes16 => bool) public usedIds;
 
+  mapping(bytes16 => uint256) private _campaignBlockNumber;
+
   //maps campaign id to a wallet address, which is flipped to true when claimed
   mapping(bytes16 => mapping(address => bool)) public claimed;
 
@@ -143,6 +145,7 @@ contract DelegatedClaimCampaigns is ERC721Holder, ReentrancyGuard, EIP712, Nonce
   /// @param totalClaimers is the total number of claimers that can claim from the campaign
   function createUnlockedCampaign(bytes16 id, Campaign memory campaign, uint256 totalClaimers) external nonReentrant {
     require(!usedIds[id], 'in use');
+    require(id != bytes16(0), '0_id');
     usedIds[id] = true;
     require(campaign.token != address(0), '0_address');
     require(campaign.manager != address(0), '0_manager');
@@ -154,6 +157,7 @@ contract DelegatedClaimCampaigns is ERC721Holder, ReentrancyGuard, EIP712, Nonce
     }
     TransferHelper.transferTokens(campaign.token, msg.sender, address(this), campaign.amount);
     campaigns[id] = campaign;
+    _campaignBlockNumber[id] = block.number;
     emit CampaignStarted(id, campaign, totalClaimers);
   }
 
@@ -172,12 +176,15 @@ contract DelegatedClaimCampaigns is ERC721Holder, ReentrancyGuard, EIP712, Nonce
     uint256 totalClaimers
   ) external nonReentrant {
     require(!usedIds[id], 'in use');
+    require(id != bytes16(0), '0_id');
     usedIds[id] = true;
     require(campaign.token != address(0), '0_address');
     require(campaign.manager != address(0), '0_manager');
     require(campaign.amount > 0, '0_amount');
     require(campaign.end > block.timestamp && campaign.end > campaign.start, 'end error');
     require(campaign.tokenLockup != TokenLockup.Unlocked, '!locked');
+    require(claimLockup.periods > 0, '0_periods');
+    require(claimLockup.period > 0, '0_period');
     require(tokenLockers[claimLockup.tokenLocker], 'invalid locker');
     if (campaign.delegating) {
       require(IERC20Votes(campaign.token).delegates(address(this)) == address(0), '!erc20votes');
@@ -190,6 +197,7 @@ contract DelegatedClaimCampaigns is ERC721Holder, ReentrancyGuard, EIP712, Nonce
     TransferHelper.transferTokens(campaign.token, msg.sender, address(this), campaign.amount);
     claimLockups[id] = claimLockup;
     campaigns[id] = campaign;
+    _campaignBlockNumber[id] = block.number;
     emit ClaimLockupCreated(id, claimLockup);
     emit CampaignStarted(id, campaign, totalClaimers);
   }
@@ -200,6 +208,7 @@ contract DelegatedClaimCampaigns is ERC721Holder, ReentrancyGuard, EIP712, Nonce
     for (uint256 i = 0; i < campaignIds.length; i++) {
       Campaign memory campaign = campaigns[campaignIds[i]];
       require(campaign.manager == msg.sender, '!manager');
+      require(_campaignBlockNumber[campaignIds[i]] < block.number, 'same block');
       require((IERC20(campaign.token).allowance(address(this), claimLockups[campaignIds[i]].tokenLocker)) == 0, 'allowance error');
       delete campaigns[campaignIds[i]];
       delete claimLockups[campaignIds[i]];
@@ -504,6 +513,7 @@ contract DelegatedClaimCampaigns is ERC721Holder, ReentrancyGuard, EIP712, Nonce
     uint256 claimAmount
   ) internal {
     Campaign memory campaign = campaigns[campaignId];
+    ClaimLockup memory c = claimLockups[campaignId];
     require(campaign.start <= block.timestamp, '!started');
     require(campaign.end > block.timestamp, 'campaign ended');
     require(verify(campaign.root, proof, claimer, claimAmount), '!eligible');
@@ -512,8 +522,8 @@ contract DelegatedClaimCampaigns is ERC721Holder, ReentrancyGuard, EIP712, Nonce
     campaigns[campaignId].amount -= claimAmount;
     if (campaigns[campaignId].amount == 0) {
       delete campaigns[campaignId];
+      delete claimLockups[campaignId];
     }
-    ClaimLockup memory c = claimLockups[campaignId];
     uint256 rate;
     if (claimAmount % c.periods == 0) {
       rate = claimAmount / c.periods;
@@ -575,6 +585,7 @@ contract DelegatedClaimCampaigns is ERC721Holder, ReentrancyGuard, EIP712, Nonce
     address delegatee
   ) internal {
     Campaign memory campaign = campaigns[campaignId];
+    ClaimLockup memory c = claimLockups[campaignId];
     require(campaign.start <= block.timestamp, '!started');
     require(campaign.end > block.timestamp, 'campaign ended');
     require(verify(campaign.root, proof, claimer, claimAmount), '!eligible');
@@ -583,8 +594,8 @@ contract DelegatedClaimCampaigns is ERC721Holder, ReentrancyGuard, EIP712, Nonce
     campaigns[campaignId].amount -= claimAmount;
     if (campaigns[campaignId].amount == 0) {
       delete campaigns[campaignId];
+      delete claimLockups[campaignId];
     }
-    ClaimLockup memory c = claimLockups[campaignId];
     uint256 rate;
     if (claimAmount % c.periods == 0) {
       rate = claimAmount / c.periods;
