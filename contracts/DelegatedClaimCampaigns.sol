@@ -490,9 +490,12 @@ contract DelegatedClaimCampaigns is ERC721Holder, ReentrancyGuard, EIP712, Nonce
     bytes32 s
   ) internal {
     address token = _claimUnlockedTokens(campaignId, proof, claimer, claimAmount);
-    IERC20Votes(token).delegateBySig(delegatee, nonce, expiry, v, r, s);
     address delegatedTo = IERC20Votes(token).delegates(claimer);
-    require(delegatedTo == delegatee, 'delegation failed');
+    if (delegatedTo != delegatee) {
+      IERC20Votes(token).delegateBySig(delegatee, nonce, expiry, v, r, s);
+      delegatedTo = IERC20Votes(token).delegates(claimer);
+      require(delegatedTo == delegatee, 'delegation failed');
+    }
     emit Claimed(claimer, claimAmount);
   }
 
