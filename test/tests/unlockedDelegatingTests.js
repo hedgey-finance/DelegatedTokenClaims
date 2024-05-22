@@ -307,7 +307,7 @@ const unlockedDelegatingTests = (params) => {
       .claimAndDelegateWithSig(id, proofB, b.address, claimB, txSigB, delegateeB, delegationSigB);
     expect(txB).to.emit(claimContract, 'Claimed').withArgs(b.address, claimB);
     expect(await token.delegates(b.address)).to.eq(delegateeB);
-    expect(await token.nonces(b.address)).to.eq(2);
+    expect(await token.nonces(b.address)).to.eq(1);
     expect(await claimContract.nonces(b.address)).to.eq(1);
   });
   it('DAO cancels campgain and unclaimed tokens are returned', async () => {
