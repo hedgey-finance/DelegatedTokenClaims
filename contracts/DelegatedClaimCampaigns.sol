@@ -619,7 +619,7 @@ contract DelegatedClaimCampaigns is ERC721Holder, ReentrancyGuard, EIP712, Nonce
         c.period
       );
       IDelegatePlan(c.tokenLocker).delegate(tokenId, delegatee);
-      IERC721(c.tokenLocker).transferFrom(address(this), claimer, tokenId);
+      IERC721(c.tokenLocker).safeTransferFrom(address(this), claimer, tokenId);
     } else {
       tokenId = IVestingPlans(c.tokenLocker).createPlan(
         address(this),
@@ -633,7 +633,7 @@ contract DelegatedClaimCampaigns is ERC721Holder, ReentrancyGuard, EIP712, Nonce
         true
       );
       IDelegatePlan(c.tokenLocker).delegate(tokenId, delegatee);
-      IERC721(c.tokenLocker).transferFrom(address(this), claimer, tokenId);
+      IERC721(c.tokenLocker).safeTransferFrom(address(this), claimer, tokenId);
       IVestingPlans(c.tokenLocker).changeVestingPlanAdmin(tokenId, _vestingAdmins[campaignId]);
     }
     require((IERC20(campaign.token).allowance(address(this), c.tokenLocker)) == 0, 'allowance error');
