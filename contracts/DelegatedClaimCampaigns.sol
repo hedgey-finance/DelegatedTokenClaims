@@ -245,7 +245,8 @@ contract DelegatedClaimCampaigns is ERC721Holder, ReentrancyGuard, EIP712, Nonce
   ) external nonReentrant {
     require(campaignIds.length == proofs.length, 'length mismatch');
     require(campaignIds.length == claimAmounts.length, 'length mismatch');
-    for (uint256 i = 0; i < campaignIds.length; i++) {
+    uint256 claimNum = campaignIds.length;
+    for (uint256 i; i < claimNum; ++i) {
       require(!claimed[campaignIds[i]][msg.sender], 'already claimed');
       require(!campaigns[campaignIds[i]].delegating, 'must delegate');
       if (campaigns[campaignIds[i]].tokenLockup == TokenLockup.Unlocked) {
@@ -321,7 +322,8 @@ contract DelegatedClaimCampaigns is ERC721Holder, ReentrancyGuard, EIP712, Nonce
     );
     require(signer == claimer, 'invalid claim signature');
     _useCheckedNonce(claimer, claimSignature.nonce);
-    for (uint256 i = 0; i < campaignIds.length; i++) {
+    uint256 claimNum = campaignIds.length;
+    for (uint256 i; i < claimNum; ++i) {
       require(!claimed[campaignIds[i]][claimer], 'already claimed');
       require(!campaigns[campaignIds[i]].delegating, 'must delegate');
       if (campaigns[campaignIds[i]].tokenLockup == TokenLockup.Unlocked) {
@@ -619,7 +621,7 @@ contract DelegatedClaimCampaigns is ERC721Holder, ReentrancyGuard, EIP712, Nonce
         c.period
       );
       IDelegatePlan(c.tokenLocker).delegate(tokenId, delegatee);
-      IERC721(c.tokenLocker).safeTransferFrom(address(this), claimer, tokenId);
+      IERC721(c.tokenLocker).transferFrom(address(this), claimer, tokenId);
     } else {
       tokenId = IVestingPlans(c.tokenLocker).createPlan(
         address(this),
@@ -633,7 +635,7 @@ contract DelegatedClaimCampaigns is ERC721Holder, ReentrancyGuard, EIP712, Nonce
         true
       );
       IDelegatePlan(c.tokenLocker).delegate(tokenId, delegatee);
-      IERC721(c.tokenLocker).safeTransferFrom(address(this), claimer, tokenId);
+      IERC721(c.tokenLocker).transferFrom(address(this), claimer, tokenId);
       IVestingPlans(c.tokenLocker).changeVestingPlanAdmin(tokenId, _vestingAdmins[campaignId]);
     }
     require((IERC20(campaign.token).allowance(address(this), c.tokenLocker)) == 0, 'allowance error');
