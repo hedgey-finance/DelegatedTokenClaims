@@ -26,3 +26,12 @@ npx hardhat run scripts/deploy.js --network <network-name>
 
 
 ## Mainnet Deployments
+
+Deployed address: `0x6F3B39C9bF155930b2C3f024FD714660F44Bbbc3`   
+- Ethereum
+- BASE
+- Optimism
+- Binance Smart Chain
+- Mode Network
+- Zora
+- Iota EVM
