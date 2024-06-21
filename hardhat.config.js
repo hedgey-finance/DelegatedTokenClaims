@@ -67,6 +67,10 @@ module.exports = {
       url: process.env.IOTA_URL,
       accounts: [process.env.DEPLOYER_PRIVATE_KEY, process.env.TOKEN_DEPLOYER],
     },
+    mantle: {
+      url: process.env.MANTLE_URL,
+      accounts: [process.env.DEPLOYER_PRIVATE_KEY, process.env.TOKEN_DEPLOYER],
+    }
   },
   etherscan: {
     customChains: [
@@ -110,6 +114,14 @@ module.exports = {
           browserURL: 'https://explorer.evm.iota.org/',
         },
       },
+      {
+        network: 'mantle',
+        chainId: 5000,
+        urls: {
+          apiURL: 'https://explorer.mantle.xyz/api',
+          browserURL: 'https://explorer.mantle.xyz/',
+        },
+      },
     ],
     apiKey: {
       sepolia: process.env.ETHERSCAN_APIKEY,
@@ -124,6 +136,7 @@ module.exports = {
       mode: process.env.MODE_APIKEY,
       zora: process.env.ZORA_APIKEY,
       iota: process.env.IOTA_APIKEY,
+      mantle: process.env.MANTLE_APIKEY,
     },
   },
 };
