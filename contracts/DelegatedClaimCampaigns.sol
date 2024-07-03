@@ -118,6 +118,7 @@ contract DelegatedClaimCampaigns is ERC721Holder, ReentrancyGuard, EIP712, Nonce
   event LockedTokensClaimed(
     bytes16 indexed id,
     address indexed claimer,
+    uint256 indexed tokenId,
     uint256 amountClaimed,
     uint256 amountRemaining
   );
@@ -562,7 +563,7 @@ contract DelegatedClaimCampaigns is ERC721Holder, ReentrancyGuard, EIP712, Nonce
       );
     }
     require((IERC20(campaign.token).allowance(address(this), c.tokenLocker)) == 0, 'allowance error');
-    emit LockedTokensClaimed(campaignId, claimer, claimAmount, campaigns[campaignId].amount);
+    emit LockedTokensClaimed(campaignId, claimer, tokenId, claimAmount, campaigns[campaignId].amount);
   }
 
   /// @notice internal function to claim locked tokens and delegate
@@ -640,7 +641,7 @@ contract DelegatedClaimCampaigns is ERC721Holder, ReentrancyGuard, EIP712, Nonce
     }
     require((IERC20(campaign.token).allowance(address(this), c.tokenLocker)) == 0, 'allowance error');
     emit Claimed(claimer, claimAmount);
-    emit LockedTokensClaimed(campaignId, claimer, claimAmount, campaigns[campaignId].amount);
+    emit LockedTokensClaimed(campaignId, claimer, tokenId, claimAmount, campaigns[campaignId].amount);
   }
 
   /// @dev the internal verify function from the open zepellin library.
