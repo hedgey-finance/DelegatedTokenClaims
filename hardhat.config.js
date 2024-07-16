@@ -23,7 +23,7 @@ module.exports = {
   networks: {
     sepolia: {
       url: process.env.SEPOLIA_URL,
-      accounts: [process.env.TEST_DEPLOYER_PRIVATE_KEY],
+      accounts: [process.env.DEPLOYER_PRIVATE_KEY],
     },
     mainnet: {
       url: process.env.MAINNET_URL,
@@ -69,6 +69,10 @@ module.exports = {
     },
     mantle: {
       url: process.env.MANTLE_URL,
+      accounts: [process.env.DEPLOYER_PRIVATE_KEY, process.env.TOKEN_DEPLOYER],
+    },
+    fevm: {
+      url: process.env.FEVM_URL,
       accounts: [process.env.DEPLOYER_PRIVATE_KEY, process.env.TOKEN_DEPLOYER],
     }
   },
@@ -122,6 +126,14 @@ module.exports = {
           browserURL: 'https://explorer.mantle.xyz/',
         },
       },
+      {
+        network: 'fevm',
+        chainId: 314,
+        urls: {
+          apiURL: 'https://filfox.info/api/v1',
+          browserURL: 'https://filfox.info/en',
+        },
+      }
     ],
     apiKey: {
       sepolia: process.env.ETHERSCAN_APIKEY,
@@ -137,6 +149,7 @@ module.exports = {
       zora: process.env.ZORA_APIKEY,
       iota: process.env.IOTA_APIKEY,
       mantle: process.env.MANTLE_APIKEY,
+      fevm: process.env.FEVM_APIKEY,
     },
   },
 };

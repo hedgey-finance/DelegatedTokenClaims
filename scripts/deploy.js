@@ -3,13 +3,12 @@ const { setTimeout } = require('timers/promises');
 
 async function deploy(lockers) {
     const Claims = await ethers.getContractFactory('DelegatedClaimCampaigns');
-    const claims = await (await Claims.deploy('ClaimCampaigns', '1', lockers)).waitForDeployment();
-    // const claims = Claims.attach('0x64B8DB3c83E82F77Eb4514d7cB397e0872F33442')
+    const claims = await (await Claims.deploy('ClaimCampaigns', '2', lockers)).waitForDeployment();
     console.log('Claims deployed to:', claims.target);
     await setTimeout(15000);
     await run('verify:verify', {
         address: claims.target,
-        constructorArguments: ['ClaimCampaigns', '1', lockers],
+        constructorArguments: ['ClaimCampaigns', '2', lockers],
     });
 }
 
