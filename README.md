@@ -39,3 +39,4 @@ Deployed address: `0x5Ae97e4770b7034C7Ca99Ab7edC26a18a23CB412`
 - Mode
 - Zora
 - IotaEVM
+- Filecoin EVM

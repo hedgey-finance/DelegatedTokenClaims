@@ -74,7 +74,11 @@ module.exports = {
     fevm: {
       url: process.env.FEVM_URL,
       accounts: [process.env.DEPLOYER_PRIVATE_KEY, process.env.TOKEN_DEPLOYER],
-    }
+    },
+    fevmTestnet: {
+      url: process.env.FEVM_TESTNET_URL,
+      accounts: [process.env.DEPLOYER_PRIVATE_KEY, process.env.TOKEN_DEPLOYER],
+    },
   },
   etherscan: {
     customChains: [
@@ -130,8 +134,8 @@ module.exports = {
         network: 'fevm',
         chainId: 314,
         urls: {
-          apiURL: 'https://filfox.info/api/v1',
-          browserURL: 'https://filfox.info/en',
+          apiURL: 'https://filecoin.blockscout.com/api',
+          browserURL: 'https://filecoin.blockscout.com/',
         },
       }
     ],
